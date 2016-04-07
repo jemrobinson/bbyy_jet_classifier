@@ -30,8 +30,9 @@ class RootTMVA(BaseStrategy) :
 
     # -- Define methods:
     BDT_method = factory.BookMethod( ROOT.TMVA.Types.kBDT, "BDT", ":".join(
-      [ "NTrees=800", "MinNodeSize=5", "MaxDepth=3", "BoostType=AdaBoost", "AdaBoostBeta=0.5", "SeparationType=GiniIndex", "nCuts=-1" ]
+      [ "NTrees=800", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex" ]
     ) )
+    # [ "NTrees=800", "MinNodeSize=5", "MaxDepth=3", "BoostType=AdaBoost", "AdaBoostBeta=0.5", "SeparationType=GiniIndex", "nCuts=-1" ]
 
     # -- Where stuff actually happens:
     factory.TrainAllMethods()
