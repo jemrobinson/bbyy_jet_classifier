@@ -1,30 +1,27 @@
 #! /usr/bin/env python
 import argparse
-import os
-import ROOT
 from bbyy_jet_classifier import strategies
+import os
 
 if __name__ == "__main__" :
-  # Set up arguments
+
+  # -- Parse arguments
   parser = argparse.ArgumentParser( description="Run ML algorithms over ROOT TTree input" )
-  parser.add_argument( "--input", type=str, help="input file name" )
+  parser.add_argument( "--input", type=str, help="input file name", required=True )
   parser.add_argument( "--output", type=str, help="output directory", default=None )
-  parser.add_argument( "--strategy", type=str, help="strategy to use", default="RootTMVA" )
+  parser.add_argument( "--correct_tree", type=str, help="name of tree containing correctly identified pairs", default="correct")
+  parser.add_argument( "--incorrect_tree", type=str, help="name of tree containing incorrectly identified pairs", default="incorrect")
+  parser.add_argument( "--excluded_variables", type=str, metavar="VARIABLE", nargs="+", help="list of variables to exclude", default=[] )
+  parser.add_argument( "--strategy", type=str, help="strategy to use. Options are: RootTMVA, sklBDT.", default="RootTMVA" )
   args = parser.parse_args()
 
-  # Check that input file exists
+  # -- Check that input file exists
   if not os.path.isfile( args.input ) : raise FileNotFoundError( "{} does not exist!".format( args.input ) )
 
-  # Construct dictionary of available strategies
+  # -- Construct dictionary of available strategies
   if not args.strategy in strategies.__dict__.keys() : raise AttributeError( "{} is not a valid strategy".format( args.strategy ) )
 
-  # Read trees from input file
-  f_input = ROOT.TFile( args.input, "READ" )
-  correct_tree = f_input.Get( "correct" )
-  incorrect_tree = f_input.Get( "incorrect" )
-
-  excluded_variables = [ "event_weight" ]
-
-  # Run appropriate strategy
+  # -- Run appropriate strategy
   ML_strategy = getattr(strategies,args.strategy)( args.output )
-  ML_strategy.run( correct_tree, incorrect_tree, excluded_variables )
+  ML_strategy.load_data( args.input, args.correct_tree, args.incorrect_tree, args.excluded_variables )
+  ML_strategy.run()
