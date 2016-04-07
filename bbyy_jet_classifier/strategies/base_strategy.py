@@ -14,6 +14,10 @@ class BaseStrategy(object) :
     self.variable_dict = root2python.get_branch_info( input_filename, correct_treename, excluded_variables )
     self.correct_array = root2rec( input_filename, correct_treename, branches=self.variable_dict.keys() )
     self.incorrect_array = root2rec( input_filename, incorrect_treename, branches=self.variable_dict.keys() )
+    self.correct_no_weights = self.correct_array[ [name for name in self.variable_dict.keys() if name != "event_weight"] ]
+    self.incorrect_no_weights = self.incorrect_array[ [name for name in self.variable_dict.keys() if name != "event_weight"] ]
+    self.correct_weights_only = self.correct_array[ [name for name in self.variable_dict.keys() if name == "event_weight"] ]
+    self.incorrect_weights_only = self.incorrect_array[ [name for name in self.variable_dict.keys() if name == "event_weight"] ]
 
 
   def run( self ) :
