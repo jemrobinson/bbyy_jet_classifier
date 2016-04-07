@@ -1,1 +1,1 @@
-from root2numpy import *
+from root2python import *
