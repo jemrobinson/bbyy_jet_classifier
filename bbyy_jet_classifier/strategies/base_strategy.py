@@ -1,3 +1,5 @@
+from ..adaptors import root2python
+from root_numpy import root2rec
 import os
 
 class BaseStrategy(object) :
@@ -9,7 +11,9 @@ class BaseStrategy(object) :
 
 
   def load_data( self, input_filename, correct_treename, incorrect_treename, excluded_variables ) :
-    raise NotImplementedError( "Must be implemented by child class!" )
+    self.variable_dict = root2python.get_branch_info( input_filename, correct_treename, excluded_variables )
+    self.correct_array = root2rec( input_filename, correct_treename, branches=self.variable_dict.keys() )
+    self.incorrect_array = root2rec( input_filename, incorrect_treename, branches=self.variable_dict.keys() )
 
 
   def run( self ) :

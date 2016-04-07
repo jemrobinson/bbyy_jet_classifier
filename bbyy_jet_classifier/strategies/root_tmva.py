@@ -3,17 +3,10 @@ from ..adaptors import root2python
 import os
 import shutil
 import ROOT
+from root_numpy import array2tree
 
 class RootTMVA(BaseStrategy) :
   default_output_location = "output/RootTMVA"
-
-
-  def load_data( self, input_filename, correct_tree_name, incorrect_tree_name, excluded_variables ) :
-    # -- Import data by reading trees from .root file
-    f_input = ROOT.TFile( input_filename, "READ" )
-    self.correct_tree = f_input.Get( "correct" )
-    self.incorrect_tree = f_input.Get( "incorrect" )
-    self.excluded_variables = excluded_variables
 
 
   def run( self ) :
@@ -22,14 +15,18 @@ class RootTMVA(BaseStrategy) :
     f_output = ROOT.TFile( "{}/TMVA_output.root".format( self.output_directory ), "RECREATE" )
     factory = ROOT.TMVA.Factory( "TMVAClassification", f_output, "AnalysisType=Classification" )
 
+    # -- Re-construct trees from arrays:
+    correct_tree = array2tree( self.correct_array, name="correct" )
+    incorrect_tree = array2tree( self.incorrect_array, name="incorrect" )
+
     # -- Add variables to the factory:
-    for variable, v_type in root2python.get_tree_variables( self.correct_tree, excluded_variables=self.excluded_variables).items() :
-      factory.AddVariable( variable, v_type )
+    for variable, v_type in self.variable_dict.items() :
+      if variable != "event_weight" : factory.AddVariable( variable, v_type )
     factory.SetWeightExpression( "event_weight" );
 
     # -- Pass signal and background trees:
-    factory.AddSignalTree( self.correct_tree )
-    factory.AddBackgroundTree( self.incorrect_tree )
+    factory.AddSignalTree( correct_tree )
+    factory.AddBackgroundTree( incorrect_tree )
     factory.PrepareTrainingAndTestTree( ROOT.TCut(""), ROOT.TCut(""), "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random" )
 
     # -- Define methods:
