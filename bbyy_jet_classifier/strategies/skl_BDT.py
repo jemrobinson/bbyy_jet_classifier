@@ -1,4 +1,5 @@
 from . import BaseStrategy
+from ..adaptors import root2python
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
@@ -13,7 +14,7 @@ class sklBDT(BaseStrategy) :
     self.construct_test_training_arrays()
 
     # -- ANOVA for feature selection (please, know what you're doing)
-    # feature_selection(X_train, y_train, features, 5)
+    # self.feature_selection(5)
 
     # -- Train:
     print "Training..."
@@ -24,13 +25,33 @@ class sklBDT(BaseStrategy) :
     print "Testing..."
     print "Training accuracy = {:.2f}%".format(100 * classifier.score(self.X_train, self.y_train, sample_weight = self.w_train))
     print "Testing accuracy = {:.2f}%".format(100 * classifier.score(self.X_test, self.y_test, sample_weight = self.w_test))
-    yhat_test  = classifier.predict_proba(self.X_test )
+    yhat_test = classifier.predict_proba(self.X_test)
+    # print "yhat:",zip( yhat_test, self.y_test )
 
     # -- Plot:
-    plot(yhat_test, self.y_test)
+    plot(yhat_test, self.y_test, figname="{}/skl_BDT_output.pdf".format(self.output_directory))
+
+    # -- Get list of variables and classifier scores
+    variables = [ (k,root2python.char2type[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]
+    classifier_score_test = np.hsplit( classifier.predict_proba(self.X_test), 2 )[1]
+    classifier_score_training = np.hsplit( classifier.predict_proba(self.X_train), 2 )[1]
+
+    # -- Construct sliced arrays of test and training events
+    # test_values_with_score = np.append( self.X_test, np.append(np.reshape(self.y_test,(-1,1)), classifier_score_test, axis=1), axis=1 )
+    # training_values_with_score = np.append( self.X_train, np.append(np.reshape(self.y_train,(-1,1)), classifier_score_train, axis=1), axis=1 )
+    test_values_with_score = np.concatenate( ( self.X_test, np.reshape(self.w_test,(-1,1)), np.reshape(self.y_test,(-1,1)), classifier_score_test ), axis=1 )
+    # print variables, len(variables), test_values_with_score.shape
+    training_values_with_score = np.concatenate( ( self.X_train, np.reshape(self.w_train,(-1,1)), np.reshape(self.y_train,(-1,1)), classifier_score_training ), axis=1 )
+    test_events_sliced = [ test_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
+    training_events_sliced = [ training_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
 
 
-  def construct_test_training_arrays( self, training_fraction=0.7 ) :
+    # -- Construct record arrays for plotting
+    self.test_events = np.rec.fromarrays( test_events_sliced, names=[ x[0] for x in variables] )
+    self.training_events = np.rec.fromarrays( training_events_sliced, names=[ x[0] for x in variables] )
+
+
+  def construct_test_training_arrays( self, training_fraction=0.5 ) :
     """
     Definition:
     -----------
@@ -51,17 +72,18 @@ class sklBDT(BaseStrategy) :
       branch_names = names of features used for training in the order in which they were inserted into X
     """
 
-    # # -- import root to array
-    # files = glob.glob(input_filename)
-    # correct_arr = stack_arrays([root2rec(fpath, correct_treename) for fpath in files])
-    # incorrect_arr = stack_arrays([root2rec(fpath, incorrect_treename) for fpath in files])
-
     # -- dump into pandas and concatenate + assign target value
     correct_df = pd.DataFrame( self.correct_array )
-    correct_df["classID"] = 1
+    correct_df["classID"] = 0
     incorrect_df = pd.DataFrame( self.incorrect_array )
-    incorrect_df["classID"] = 0
+    incorrect_df["classID"] = 1
     df = pd.concat([correct_df, incorrect_df], ignore_index= True)
+
+    # print df
+    # -- permute into a random order (resetting the index) to mix signal and background
+    df = df.sample(frac=1).reset_index(drop=True)
+    # print df
+
 
     # -- create y
     y = df["classID"].values
@@ -69,21 +91,22 @@ class sklBDT(BaseStrategy) :
 
     # -- create X:
     start = 0
-    self.features = self.variable_dict.keys()
+    self.features = [ x for x in self.variable_dict.keys() if x != "event_weight" ]
     X = np.zeros((df.shape[0], len(self.features)))
     unflattened = [df[b] for b in self.features]
 
-    for i, data in enumerate(zip(*unflattened)):
-      data = np.array(data).T
-      X[start:(start + data.shape[0])] = data
-      start += data.shape[0]
+    # -- fill X with event-by-event values
+    for event in zip(*unflattened):
+      event = np.array(event).T
+      X[start:(start + event.shape[0])] = event
+      start += event.shape[0]
 
-    # -- randomly shuffle samples so that we train on both signal and background events
-    ix = range(X.shape[0])
-    np.random.shuffle(ix)
-    X = X[ix]             # redefine X as shuffled version of itself
-    y = y[ix]             # redefine y as shuffled version of itself
-    weights = weights[ix] # redefine weights as shuffled version of itself
+    # # -- randomly shuffle samples so that we train on both signal and background events
+    # ix = range(X.shape[0])
+    # np.random.shuffle(ix)
+    # X = X[ix]             # redefine X as shuffled version of itself
+    # y = y[ix]             # redefine y as shuffled version of itself
+    # weights = weights[ix] # redefine weights as shuffled version of itself
 
     # -- split into training and testing according to TRAIN_FRAC
     n_training_examples = int(training_fraction * X.shape[0])
@@ -94,39 +117,34 @@ class sklBDT(BaseStrategy) :
     self.w_train = weights[:n_training_examples]
     self.w_test  = weights[n_training_examples:]
 
-    # return X_train, X_test, y_train, y_test, w_train, w_test, branch_names
+
+
+  def feature_selection(self, k ):
+    """
+    Definition:
+    -----------
+      !! ONLY USED FOR INTUITION, IT'S USING A LINEAR MODEL TO DETERMINE IMPORTANCE !!
+      Gives an approximate ranking of variable importance and prints out the top k
+
+    Args:
+    -----
+      k = int, the function will print the top k features in order of importance
+    """
+
+    # -- Select the k top features, as ranked using ANOVA F-score
+    from sklearn.feature_selection import SelectKBest, f_classif
+    tf = SelectKBest(score_func=f_classif, k=k)
+    Xt = tf.fit_transform(self.X_train, self.y_train)
+    # print("Shape =", Xt.shape)
+
+    # -- Plot support and return names of top features
+    print "The {} most important features are {}".format(k, [f for (s, f) in sorted(zip(tf.scores_, self.features), reverse=True)][:k] )
+    # plt.imshow(tf.get_support().reshape(2, -1), interpolation="nearest", cmap=plt.cm.Blues)
+    # plt.show()
 
 
 
-def feature_selection(X_train, y_train, features, k):
-  """
-  Definition:
-  -----------
-    !! ONLY USED FOR INTUITION, IT'S USING A LINEAR MODEL TO DETERMINE IMPORTANCE !!
-    Gives an approximate ranking of variable importance and prints out the top k
-
-  Args:
-  -----
-    X_train = matrix X of dimensions (n_train_events, n_features) for training
-    y_train = array of truth labels {0, 1} of dimensions (n_train_events) for training
-    features = names of features used for training in the order in which they were inserted into X
-    k = int, the function will print the top k features in order of importance
-  """
-
-  # -- Select the k top features, as ranked using ANOVA F-score
-  from sklearn.feature_selection import SelectKBest, f_classif
-  tf = SelectKBest(score_func=f_classif, k=k)
-  Xt = tf.fit_transform(X_train, y_train)
-  # print("Shape =", Xt.shape)
-
-  # -- Plot support and return names of top features
-  print "The {} most important features are {}".format(k, [f for (s, f) in sorted(zip(tf.scores_, features), reverse=True)][:k] )
-  # plt.imshow(tf.get_support().reshape(2, -1), interpolation="nearest", cmap=plt.cm.Blues)
-  # plt.show()
-
-
-
-def plot(yhat_test, y_test, figname="./output/skl_output.pdf"):
+def plot(yhat_test, y_test, figname="skl_BDT_output.pdf"):
   """
   Definition:
   -----------
@@ -143,15 +161,15 @@ def plot(yhat_test, y_test, figname="./output/skl_output.pdf"):
   fg = plt.figure()
   bins = np.linspace(min(yhat_test[:, 1]), max(yhat_test[:, 1]), 40)
 
-  plt.hist(yhat_test[y_test == 1][:, 1],
-    bins = bins, histtype = "stepfilled", label = "signal", color = "blue", alpha = 0.5, normed = True)
   plt.hist(yhat_test[y_test == 0][:, 1],
-    bins = bins, histtype = "stepfilled", label = "bkg", color = "red", alpha = 0.5, normed = True)
+    bins = bins, histtype = "stepfilled", label = "correct", color = "blue", alpha = 0.5, normed = True)
+  plt.hist(yhat_test[y_test == 1][:, 1],
+    bins = bins, histtype = "stepfilled", label = "incorrect", color = "red", alpha = 0.5, normed = True)
 
   plt.legend(loc = "upper center")
   plt.title("Scikit-Learn Classifier Output")
   plt.xlabel("Classifier Score")
   plt.ylabel("Arbitrary Units")
-  #plt.yscale('log')
-  plt.show()
+  # #plt.yscale('log')
+  # plt.show()
   fg.savefig(figname)

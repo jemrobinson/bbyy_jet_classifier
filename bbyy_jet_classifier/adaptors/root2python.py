@@ -2,6 +2,8 @@ from collections import OrderedDict
 import ROOT
 
 class root2python(object) :
+  rtype2char = { "Int_t":"I", "Double_t":"D", "Float_t":"F" }
+  char2type = { "I":"i4", "D":"f8", "F":"f4" }
 
   @classmethod
   def get_tree_variables( cls, input_tree, excluded_variables=[] ) :
@@ -20,11 +22,10 @@ class root2python(object) :
       variable_dict = a dictionary which has the branch names to be used for training as keys
     """
     variable_dict = OrderedDict()
-    type2char = { "Int_t":"I", "Double_t":"D", "Float_t":"F" }
     for leaf in sorted(input_tree.GetListOfLeaves()) :
       variable_name = leaf.GetName()
       if variable_name not in excluded_variables :
-        variable_dict[variable_name] = type2char[leaf.GetTypeName()]
+        variable_dict[variable_name] = cls.rtype2char[leaf.GetTypeName()]
     return variable_dict
 
 

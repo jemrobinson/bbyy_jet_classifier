@@ -1,9 +1,8 @@
 from . import BaseStrategy
-from ..adaptors import root2python
 import os
 import shutil
 import ROOT
-from root_numpy import array2tree
+from root_numpy import array2tree, root2rec
 
 class RootTMVA(BaseStrategy) :
   default_output_location = "output/RootTMVA"
@@ -43,3 +42,9 @@ class RootTMVA(BaseStrategy) :
     if os.path.isdir( "{}/weights".format(self.output_directory) ) :
       shutil.rmtree( "{}/weights".format(self.output_directory) )
     shutil.move( "weights", self.output_directory )
+
+    # -- Load test and training trees into arrays
+    f_output.Close()
+    branches = [ x.replace("event_weight","weight") for x in self.variable_dict.keys() ] + [ "BDT", "classID" ]
+    self.test_events = root2rec( "{}/TMVA_output.root".format(self.output_directory), "TestTree", branches=branches )
+    self.training_events = root2rec( "{}/TMVA_output.root".format(self.output_directory), "TrainTree", branches=branches )
