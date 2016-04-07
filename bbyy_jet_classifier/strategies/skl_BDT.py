@@ -1,7 +1,6 @@
 from . import BaseStrategy
 from ..adaptors import root2python
 import numpy as np
-# import pandas as pd
 from root_numpy import rec2array
 from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
@@ -57,8 +56,7 @@ class sklBDT(BaseStrategy) :
     self.training_events = np.rec.fromarrays( training_events_sliced, names=[ x[0] for x in variables] )
 
     # -- Dump output to pickle
-    if not os.path.exists("{}/pickle/".format(strategy.output_directory)):
-      os.makedirs("{}/pickle/".format(strategy.output_directory))
+    self.ensure_directory( "{}/pickle/".format(self.output_directory) )
     joblib.dump( classifier, "{}/pickle/sklBDT_output.pkl".format(self.output_directory) )
 
 

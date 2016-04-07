@@ -16,8 +16,7 @@ def plot_inputs( strategy ) :
   rpp.set_style('ATLAS', mpl=True)
 
   # -- Ensure output directory exists
-  if not os.path.exists("{}/variables/".format(strategy.output_directory)):
-    os.makedirs("{}/variables/".format(strategy.output_directory))
+  strategy.ensure_directory( "{}/variables/".format(strategy.output_directory) )
 
   # -- Plot distributions of input variables
   for variable in strategy.variable_dict.keys() :

@@ -16,8 +16,7 @@ def plot_outputs( strategy ) :
   rpp.set_style('ATLAS', mpl=True)
 
   # -- Ensure output directory exists
-  if not os.path.exists("{}/variables/".format(strategy.output_directory)):
-    os.makedirs("{}/variables/".format(strategy.output_directory))
+  strategy.ensure_directory( "{}/variables/".format(strategy.output_directory) )
 
   # -- Plot distributions of output classifiers and input variables
   for classifier_name in [ x for x in strategy.test_events.dtype.names if x not in strategy.variable_dict.keys() + ["weight","classID"] ] :
