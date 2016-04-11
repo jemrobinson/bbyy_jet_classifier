@@ -19,6 +19,10 @@ class sklBDT(BaseStrategy) :
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
     y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
+    import cPickle
+    cPickle.dump(X, open('X_new.pkl', 'wb'))
+    cPickle.dump(y, open('y_new.pkl', 'wb'))
+    cPickle.dump(w, open('w_new.pkl', 'wb'))
 
     # -- Construct training and test datasets, automatically permuted
     X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, test_size=0.3 )
