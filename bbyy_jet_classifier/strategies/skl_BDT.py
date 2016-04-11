@@ -19,13 +19,9 @@ class sklBDT(BaseStrategy) :
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
     y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
-    import cPickle
-    cPickle.dump(X, open('X_new.pkl', 'wb'))
-    cPickle.dump(y, open('y_new.pkl', 'wb'))
-    cPickle.dump(w, open('w_new.pkl', 'wb'))
-
+    
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, test_size=0.3 )
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, train_size= 0.7 )
 
     # -- ANOVA for feature selection (please, know what you're doing)
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
@@ -44,14 +40,17 @@ class sklBDT(BaseStrategy) :
 
     # -- Get list of variables and classifier scores
     variables = [ (k, root2python.CHAR_2_TYPE[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]
-    classifier_score_test = np.hsplit( classifier.predict_proba(X_test), 2 )[1]
-    classifier_score_training = np.hsplit( classifier.predict_proba(X_train), 2 )[1]
+    classifier_score_test = classifier.predict_proba(X_test)[:, 0]
+    classifier_score_training = classifier.predict_proba(X_train)[:, 0]
     # classifier_score_test = np.reshape(classifier.predict(X_test),(-1,1)) -- to get a yes/no answer
     # classifier_score_training = np.reshape(classifier.predict(X_train),(-1,1)) -- to get a yes/no answer
 
     # -- Construct sliced arrays of test and training events
-    test_values_with_score = np.concatenate( ( X_test, np.reshape(w_test,(-1,1)), np.reshape(y_test,(-1,1)), classifier_score_test ), axis=1 )
-    training_values_with_score = np.concatenate( ( X_train, np.reshape(w_train,(-1,1)), np.reshape(y_train,(-1,1)), classifier_score_training ), axis=1 )
+    test_values_with_score = np.hstack( ( X_test, w_test.reshape((-1,1)), y_test.reshape((-1,1)), classifier_score_test.reshape((-1,1)) ))
+    training_values_with_score = np.hstack( (X_train, w_train.reshape((-1,1)), y_train.reshape((-1,1)), classifier_score_training.reshape((-1,1)) ))
+
+
+    
     test_events_sliced = [ test_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
     training_events_sliced = [ training_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
 
