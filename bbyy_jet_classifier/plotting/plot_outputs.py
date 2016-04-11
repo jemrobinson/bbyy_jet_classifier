@@ -35,5 +35,5 @@ def plot_outputs( strategy ) :
     plt.ylabel("Fraction of events", position=(0, 1.), va='top', ha='right')
     axes.xaxis.set_label_coords(1., -0.15)
     axes.yaxis.set_label_coords(-0.18, 1.)
-    axes.set_yscale("log", nonposy="clip")
+    #axes.set_yscale("log", nonposy="clip")
     figure.savefig( "{}/variables/{}.pdf".format(strategy.output_directory,classifier_name) )

@@ -1,1 +1,1 @@
-from root2python import *
+import root2python

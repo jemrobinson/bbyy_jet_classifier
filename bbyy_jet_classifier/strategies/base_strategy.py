@@ -19,8 +19,8 @@ class BaseStrategy(object) :
     self.incorrect_array = root2rec( input_filename, incorrect_treename, branches=self.variable_dict.keys() )
     self.correct_no_weights = self.correct_array[ [name for name in self.variable_dict.keys() if name != "event_weight"] ]
     self.incorrect_no_weights = self.incorrect_array[ [name for name in self.variable_dict.keys() if name != "event_weight"] ]
-    self.correct_weights_only = self.correct_array[ [name for name in self.variable_dict.keys() if name == "event_weight"] ]
-    self.incorrect_weights_only = self.incorrect_array[ [name for name in self.variable_dict.keys() if name == "event_weight"] ]
+    self.correct_weights_only = self.correct_array[["event_weight"]]
+    self.incorrect_weights_only = self.incorrect_array[["event_weight"]]
 
 
   def run( self ) :
