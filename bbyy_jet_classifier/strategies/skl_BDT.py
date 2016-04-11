@@ -21,7 +21,7 @@ class sklBDT(BaseStrategy) :
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
 
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, test_size=0.5 )
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, test_size=0.3 )
 
     # -- ANOVA for feature selection (please, know what you're doing)
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
@@ -34,12 +34,12 @@ class sklBDT(BaseStrategy) :
     # -- Test:
     print "Testing..."
     print "Training accuracy = {:.2f}%".format(100 * classifier.score( X_train, y_train, sample_weight=w_train))
-    print classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"]  )
+    print classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"], sample_weight=w_train)
     print "Testing accuracy = {:.2f}%".format(100 * classifier.score( X_test, y_test, sample_weight=w_test))
-    print classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"]  )
+    print classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"], sample_weight=w_test)
 
     # -- Get list of variables and classifier scores
-    variables = [ (k,root2python.char2type[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]
+    variables = [ (k, root2python.CHAR_2_TYPE[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]
     classifier_score_test = np.hsplit( classifier.predict_proba(X_test), 2 )[1]
     classifier_score_training = np.hsplit( classifier.predict_proba(X_train), 2 )[1]
     # classifier_score_test = np.reshape(classifier.predict(X_test),(-1,1)) -- to get a yes/no answer
