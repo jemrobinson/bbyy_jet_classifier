@@ -7,10 +7,13 @@ __pycache__/
 *.so
 
 # ROOT files
-*.root
+*.root*
 
 # OSX files
 .DS_Store
+
+# Output directory
+output/
 
 # Distribution / packaging
 .Python
@@ -64,5 +67,5 @@ docs/_build/
 # PyBuilder
 target/
 
-#Ipython Notebook
+# Ipython Notebook
 .ipynb_checkpoints

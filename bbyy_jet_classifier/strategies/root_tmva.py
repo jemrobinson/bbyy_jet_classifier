@@ -8,7 +8,7 @@ class RootTMVA(BaseStrategy) :
   default_output_location = "output/RootTMVA"
 
 
-  def run( self ) :
+  def run( self, training_fraction ) :
     # -- Initialise TMVA tools
     ROOT.TMVA.Tools.Instance()
     f_output = ROOT.TFile( "{}/TMVA_output.root".format( self.output_directory ), "RECREATE" )
@@ -23,16 +23,23 @@ class RootTMVA(BaseStrategy) :
       if variable != "event_weight" : factory.AddVariable( variable, v_type )
     factory.SetWeightExpression( "event_weight" );
 
+    # -- Decide how many events to train/test on
+    nTrainSignal, nTrainBackground = int(correct_tree.GetEntries()*training_fraction), int(incorrect_tree.GetEntries()*training_fraction)
+    nTestSignal, nTestBackground = int(correct_tree.GetEntries()-nTrainSignal), int(incorrect_tree.GetEntries()-nTrainBackground)
+
     # -- Pass signal and background trees:
     factory.AddSignalTree( correct_tree )
     factory.AddBackgroundTree( incorrect_tree )
-    factory.PrepareTrainingAndTestTree( ROOT.TCut(""), ROOT.TCut(""), "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random" )
+    factory.PrepareTrainingAndTestTree( ROOT.TCut(""), ROOT.TCut(""), ":".join(
+      [ "nTrain_Signal={}".format(nTrainSignal), "nTrain_Background={}".format(nTrainBackground),
+        "nTest_Signal={}".format(nTestSignal), "nTest_Background={}".format(nTestBackground),
+        "SplitMode=Random" ]
+    ))
 
     # -- Define methods:
     BDT_method = factory.BookMethod( ROOT.TMVA.Types.kBDT, "BDT", ":".join(
       [ "NTrees=800", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex" ]
     ) )
-    # [ "NTrees=800", "MinNodeSize=5", "MaxDepth=3", "BoostType=AdaBoost", "AdaBoostBeta=0.5", "SeparationType=GiniIndex", "nCuts=-1" ]
 
     # -- Where stuff actually happens:
     factory.TrainAllMethods()

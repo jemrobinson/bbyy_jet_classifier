@@ -11,7 +11,7 @@ class sklBDT(BaseStrategy) :
   default_output_location = "output/sklBDT"
 
 
-  def run( self ):
+  def run( self, training_fraction ):
     # -- Convert already-loaded arrays into test and training samples
     # self.construct_test_training_arrays()
 
@@ -19,9 +19,9 @@ class sklBDT(BaseStrategy) :
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
     y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
-    
+
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, train_size= 0.7 )
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, train_size=training_fraction )
 
     # -- ANOVA for feature selection (please, know what you're doing)
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
@@ -50,7 +50,7 @@ class sklBDT(BaseStrategy) :
     training_values_with_score = np.hstack( (X_train, w_train.reshape((-1,1)), y_train.reshape((-1,1)), classifier_score_training.reshape((-1,1)) ))
 
 
-    
+
     test_events_sliced = [ test_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
     training_events_sliced = [ training_values_with_score[...,idx].astype(variable[1]) for idx, variable in enumerate( variables ) ]
 
