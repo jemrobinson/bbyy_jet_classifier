@@ -22,7 +22,7 @@ def get_tree_variables( input_tree, excluded_variables=[] ) :
   variable_dict = OrderedDict()
   for leaf in sorted(input_tree.GetListOfLeaves()) :
     variable_name = leaf.GetName()
-    if variable_name not in excluded_variables :
+    if variable_name in excluded_variables :
       print "Ignoring variable {}!".format(variable_name)
     else :
       variable_dict[variable_name] = RTYPE_2_CHAR[leaf.GetTypeName()]
