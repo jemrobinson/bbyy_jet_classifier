@@ -21,7 +21,7 @@ class sklBDT(BaseStrategy) :
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
     
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, train_size= 0.7 )
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split( X, y, w, train_size= 0.7batch )
 
     # -- ANOVA for feature selection (please, know what you're doing)
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
