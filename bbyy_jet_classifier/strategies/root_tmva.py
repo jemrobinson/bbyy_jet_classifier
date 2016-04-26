@@ -1,11 +1,12 @@
 from . import BaseStrategy
 from ..adaptors import root2python
 import array
+import logging
+from numpy.lib import recfunctions
 import os
-import shutil
 import ROOT
 from root_numpy import array2tree, root2rec, tree2array
-from numpy.lib import recfunctions
+import shutil
 
 class RootTMVA(BaseStrategy) :
   default_output_location = "output/RootTMVA"

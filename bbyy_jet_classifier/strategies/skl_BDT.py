@@ -14,6 +14,7 @@ class sklBDT(BaseStrategy) :
 
 
   def train_and_test( self, training_fraction ):
+
     # -- Construct array of features (X) and array of categories (y)
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
     y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
@@ -26,7 +27,6 @@ class sklBDT(BaseStrategy) :
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
 
     # -- Train:
-    # print "Training..."
     logging.getLogger("sklBDT").info( "Training..." )
     classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
     classifier.fit( X_train, y_train, sample_weight=w_train )
@@ -34,9 +34,9 @@ class sklBDT(BaseStrategy) :
     # -- Test:
     logging.getLogger("sklBDT").info( "Testing..." )
     logging.getLogger("sklBDT").info( "Training accuracy = {:.2f}%".format(100 * classifier.score( X_train, y_train, sample_weight=w_train)) )
-    logging.getLogger("sklBDT").info( classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"], sample_weight=w_train) )
+    [ logging.getLogger("sklBDT").info(l) for l in classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"], sample_weight=w_train ).splitlines() ]
     logging.getLogger("sklBDT").info( "Testing accuracy = {:.2f}%".format(100 * classifier.score( X_test, y_test, sample_weight=w_test)) )
-    logging.getLogger("sklBDT").info( classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"], sample_weight=w_test) )
+    [ logging.getLogger("sklBDT").info(l) for l in classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"], sample_weight=w_test ).splitlines() ]
 
     # -- Get list of variables and classifier scores
     variables = [ (k, root2python.CHAR_2_TYPE[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]

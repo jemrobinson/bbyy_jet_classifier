@@ -5,7 +5,11 @@ import logging
 import os
 
 if __name__ == "__main__" :
-  logger = logging.getLogger("RunClassifier")
+  logging.basicConfig( format="%(levelname)-8s\033[1m%(name)-21s\033[0m: %(message)s" )
+  logging.addLevelName( logging.WARNING, "\033[1;35m{:8}\033[1;0m".format(logging.getLevelName(logging.WARNING)) )
+  logging.addLevelName( logging.ERROR, "\033[1;31m{:8}\033[1;0m".format(logging.getLevelName(logging.ERROR)) )
+  logging.addLevelName( logging.INFO, "\033[1;32m{:8}\033[1;0m".format(logging.getLevelName(logging.INFO)) )
+  logging.addLevelName( logging.DEBUG, "\033[1;34m{:8}\033[1;0m".format(logging.getLevelName(logging.DEBUG)) )
 
   # -- Parse arguments
   parser = argparse.ArgumentParser( description="Run ML algorithms over ROOT TTree input" )
@@ -27,17 +31,17 @@ if __name__ == "__main__" :
   # -- Load data for appropriate strategy
   ML_strategy = getattr(strategies,args.strategy)( args.output )
   ML_strategy.load_data( args.input, args.correct_tree, args.incorrect_tree, args.exclude )
-  logger.info( "Loaded data for strategy: {}".format(args.strategy) )
+  logging.getLogger("RunClassifier").info( "Loaded data for strategy: {}".format(args.strategy) )
 
   # -- Run appropriate strategy
   if args.ftrain > 0 :
-    logger.info( "Preparing to train with {}% of events and then test with the remainder".format( int(100*args.ftrain) ) )
+    logging.getLogger("RunClassifier").info( "Preparing to train with {}% of events and then test with the remainder".format( int(100*args.ftrain) ) )
     ML_strategy.train_and_test( args.ftrain )
     # -- Plot distributions
     plotting.plot_training_inputs( ML_strategy )
     plotting.plot_training_outputs( ML_strategy )
   else :
-    logger.info( "Preparing to use 100% of sample as testing input" )
+    logging.getLogger("RunClassifier").info( "Preparing to use 100% of sample as testing input" )
     ML_strategy.test_only()
     # -- Plot distributions
     plotting.plot_testing_outputs( ML_strategy, args.input.replace(".root","") )
