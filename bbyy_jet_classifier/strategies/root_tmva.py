@@ -9,6 +9,7 @@ from numpy.lib import recfunctions
 
 class RootTMVA(BaseStrategy) :
   default_output_location = "output/RootTMVA"
+  classifier_range = ( -1.0, 1.0 )
 
 
   def train_and_test( self, training_fraction ) :

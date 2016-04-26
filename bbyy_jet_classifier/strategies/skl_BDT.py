@@ -10,6 +10,7 @@ from sklearn.metrics import classification_report
 
 class sklBDT(BaseStrategy) :
   default_output_location = "output/sklBDT"
+  classifier_range = ( 0.0, 1.0 )
 
 
   def train_and_test( self, training_fraction ):
@@ -78,12 +79,9 @@ class sklBDT(BaseStrategy) :
     from sklearn.feature_selection import SelectKBest, f_classif
     tf = SelectKBest(score_func=f_classif, k=k)
     Xt = tf.fit_transform( X_train, y_train)
-    # print("Shape =", Xt.shape)
 
     # -- Plot support and return names of top features
     logging.getLogger("sklBDT").info( "The {} most important features are {}".format(k, [f for (s, f) in sorted(zip(tf.scores_, features), reverse=True)][:k] ) )
-    # plt.imshow(tf.get_support().reshape(2, -1), interpolation="nearest", cmap=plt.cm.Blues)
-    # plt.show()
 
 
   def test_only( self ) :

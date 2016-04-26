@@ -26,9 +26,9 @@ def plot_training_inputs( strategy ) :
     axes = plt.axes()
     bins = np.linspace( min([min(data_correct),min(data_incorrect)]), max([max(data_correct),max(data_incorrect)]), 50 )
     y_1, _, _ = plt.hist( data_correct, weights=np.ones_like(data_correct)/float(len(data_correct)),
-      bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+      bins=bins, histtype="stepfilled", label="Correct (all)", color="blue", alpha=0.5)
     y_2, _, _ = plt.hist( data_incorrect, weights=np.ones_like(data_incorrect)/float(len(data_incorrect)),
-      bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+      bins=bins, histtype="stepfilled", label="Incorrect (all)", color="red", alpha=0.5)
     plt.legend(loc="upper right")
     plt.xlabel(variable, position=(1., 0), va='bottom', ha='right')
     plt.ylabel("Fraction of events", position=(0, 1.), va='top', ha='right')

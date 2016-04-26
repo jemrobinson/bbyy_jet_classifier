@@ -27,6 +27,7 @@ if __name__ == "__main__" :
   # -- Load data for appropriate strategy
   ML_strategy = getattr(strategies,args.strategy)( args.output )
   ML_strategy.load_data( args.input, args.correct_tree, args.incorrect_tree, args.exclude )
+  logger.info( "Loaded data for strategy: {}".format(args.strategy) )
 
   # -- Run appropriate strategy
   if args.ftrain > 0 :
