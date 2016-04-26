@@ -3,7 +3,7 @@ import numpy as np
 import os
 import rootpy.plotting as rpp
 
-def plot_inputs( strategy ) :
+def plot_training_inputs( strategy ) :
   """
   Definition:
   -----------
@@ -16,7 +16,7 @@ def plot_inputs( strategy ) :
   rpp.set_style('ATLAS', mpl=True)
 
   # -- Ensure output directory exists
-  strategy.ensure_directory( "{}/variables/".format(strategy.output_directory) )
+  strategy.ensure_directory( "{}/training/".format(strategy.output_directory) )
 
   # -- Plot distributions of input variables
   for variable in strategy.variable_dict.keys() :
@@ -35,4 +35,4 @@ def plot_inputs( strategy ) :
     axes.xaxis.set_label_coords(1., -0.15)
     axes.yaxis.set_label_coords(-0.2, 1.)
     axes.set_ylim( [0,1.3*max([1e-5,max(y_1),max(y_2)])] )
-    figure.savefig( "{}/variables/{}.pdf".format(strategy.output_directory,variable) )
+    figure.savefig( "{}/training/{}.pdf".format(strategy.output_directory,variable) )

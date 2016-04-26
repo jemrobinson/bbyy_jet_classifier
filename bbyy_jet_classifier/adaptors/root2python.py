@@ -1,8 +1,10 @@
 from collections import OrderedDict
+import logging
 import ROOT
 
 RTYPE_2_CHAR = { "Int_t":"I", "Double_t":"D", "Float_t":"F" }
 CHAR_2_TYPE = { "I":"i4", "D":"f8", "F":"f4" }
+CHAR_2_ARRAYTYPE = { "I":"i", "D":"f", "F":"f" }
 
 def get_tree_variables( input_tree, excluded_variables=[] ) :
   """
@@ -22,7 +24,10 @@ def get_tree_variables( input_tree, excluded_variables=[] ) :
   variable_dict = OrderedDict()
   for leaf in sorted(input_tree.GetListOfLeaves()) :
     variable_name = leaf.GetName()
-    if variable_name not in excluded_variables :
+    if variable_name in excluded_variables :
+      # print "Ignoring variable {}!".format(variable_name)
+      logging.getLogger("root2python").info( "Ignoring variable {}!".format(variable_name) )
+    else :
       variable_dict[variable_name] = RTYPE_2_CHAR[leaf.GetTypeName()]
   return variable_dict
 
