@@ -2,7 +2,6 @@ from . import BaseStrategy
 from ..adaptors import root2python
 import array
 import logging
-from numpy.lib import recfunctions
 import os
 import ROOT
 from root_numpy import array2tree, root2rec, tree2array
@@ -15,6 +14,7 @@ class RootTMVA(BaseStrategy) :
 
   def train_and_test( self, training_fraction ) :
     # -- Initialise TMVA tools
+    logging.getLogger("RootTMVA::Train").info( "Initialise TMVA tools" )
     ROOT.TMVA.Tools.Instance()
     f_output = ROOT.TFile( "{}/TMVA_output.root".format( self.output_directory ), "RECREATE" )
     factory = ROOT.TMVA.Factory( "TMVAClassification", f_output, "AnalysisType=Classification" )
@@ -33,6 +33,7 @@ class RootTMVA(BaseStrategy) :
     nTestSignal, nTestBackground = int(correct_tree.GetEntries()-nTrainSignal), int(incorrect_tree.GetEntries()-nTrainBackground)
 
     # -- Pass signal and background trees:
+    logging.getLogger("RootTMVA::Train").info( "Prepare signal/background trees" )
     factory.AddSignalTree( correct_tree )
     factory.AddBackgroundTree( incorrect_tree )
     factory.PrepareTrainingAndTestTree( ROOT.TCut(""), ROOT.TCut(""), ":".join(
@@ -47,11 +48,15 @@ class RootTMVA(BaseStrategy) :
     ))
 
     # -- Where stuff actually happens:
+    logging.getLogger("RootTMVA::Train").info( "Train all methods" )
     factory.TrainAllMethods()
+    logging.getLogger("RootTMVA::Train").info( "Test all methods" )
     factory.TestAllMethods()
+    logging.getLogger("RootTMVA::Train").info( "Evaluate all methods" )
     factory.EvaluateAllMethods()
 
     # -- Organize output:
+    logging.getLogger("RootTMVA::Train").info( "Organize output" )
     if os.path.isdir( "{}/weights".format(self.output_directory) ) :
       shutil.rmtree( "{}/weights".format(self.output_directory) )
     shutil.move( "weights", self.output_directory )
@@ -63,11 +68,13 @@ class RootTMVA(BaseStrategy) :
     self.training_events = root2rec( "{}/TMVA_output.root".format(self.output_directory), "TrainTree", branches=branches )
 
 
+
   def test_only( self ) :
     # -- Setup dictionary of variable names to ROOT-accessible arrays
     variables = {}
 
     # -- Construct reader and add variables to it:
+    logging.getLogger("RootTMVA::Test").info( "Construct TMVA reader and add variables to it" )
     reader = ROOT.TMVA.Reader()
     for v_name in self.classification_variables :
       variables[v_name] = array.array( root2python.CHAR_2_ARRAYTYPE[self.variable_dict[v_name]] ,[0])
@@ -75,13 +82,15 @@ class RootTMVA(BaseStrategy) :
     variables["BDT"] = array.array( "f", [0] )
 
     # -- Load TMVA results
+    logging.getLogger("RootTMVA.Test").info( "Load TMVA reader from disk" )
     reader.BookMVA( "BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory) )
 
-    # -- Re-construct trees from arrays:
+    # -- Reconstruct trees from arrays:
     correct_tree = array2tree( self.correct_array, name="correct" )
     incorrect_tree = array2tree( self.incorrect_array, name="incorrect" )
 
     # -- Calculate BDT output and add to trees
+    logging.getLogger("RootTMVA::Test").info( "Calculate BDT output and add to trees..." )
     for tree in [ correct_tree, incorrect_tree ] :
       BDT_branch = tree.Branch( "BDT", variables["BDT"], "D" )
       for event in tree :
@@ -90,6 +99,7 @@ class RootTMVA(BaseStrategy) :
         BDT_branch.Fill()
 
     # -- Construct record arrays of correct/incorrect events
+    logging.getLogger("RootTMVA::Test").info( "Constructing record arrays of correct/incorrect events..." )
     self.test_correct_events = tree2array( correct_tree, branches=self.variable_dict.keys()+["BDT"] )
     self.test_incorrect_events = tree2array( incorrect_tree, branches=self.variable_dict.keys()+["BDT"] )
     self.test_correct_events.dtype.names = [ x.replace("event_weight","weight") for x in self.test_correct_events.dtype.names ]

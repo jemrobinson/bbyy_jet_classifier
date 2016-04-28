@@ -14,7 +14,6 @@ class sklBDT(BaseStrategy) :
 
 
   def train_and_test( self, training_fraction ):
-
     # -- Construct array of features (X) and array of categories (y)
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
     y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
@@ -27,16 +26,16 @@ class sklBDT(BaseStrategy) :
     self.feature_selection( X_train, y_train, self.correct_no_weights.dtype.names, 5 )
 
     # -- Train:
-    logging.getLogger("sklBDT").info( "Training..." )
+    logging.getLogger("sklBDT::Train").info( "Training..." )
     classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
     classifier.fit( X_train, y_train, sample_weight=w_train )
 
     # -- Test:
-    logging.getLogger("sklBDT").info( "Testing..." )
-    logging.getLogger("sklBDT").info( "Training accuracy = {:.2f}%".format(100 * classifier.score( X_train, y_train, sample_weight=w_train)) )
-    [ logging.getLogger("sklBDT").info(l) for l in classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"], sample_weight=w_train ).splitlines() ]
-    logging.getLogger("sklBDT").info( "Testing accuracy = {:.2f}%".format(100 * classifier.score( X_test, y_test, sample_weight=w_test)) )
-    [ logging.getLogger("sklBDT").info(l) for l in classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"], sample_weight=w_test ).splitlines() ]
+    logging.getLogger("sklBDT::Train").info( "Testing..." )
+    logging.getLogger("sklBDT::Train").info( "Training accuracy = {:.2f}%".format(100 * classifier.score( X_train, y_train, sample_weight=w_train)) )
+    [ logging.getLogger("sklBDT::Train").info(l) for l in classification_report( y_train, classifier.predict(X_train), target_names=["correct","incorrect"], sample_weight=w_train ).splitlines() ]
+    logging.getLogger("sklBDT::Train").info( "Testing accuracy = {:.2f}%".format(100 * classifier.score( X_test, y_test, sample_weight=w_test)) )
+    [ logging.getLogger("sklBDT::Train").info(l) for l in classification_report( y_test, classifier.predict(X_test), target_names=["correct","incorrect"], sample_weight=w_test ).splitlines() ]
 
     # -- Get list of variables and classifier scores
     variables = [ (k, root2python.CHAR_2_TYPE[v]) for k,v in self.variable_dict.items()+[("weight","F"),("classID","I"),("classifier","F")] if k != "event_weight" ]
@@ -56,6 +55,7 @@ class sklBDT(BaseStrategy) :
     self.training_events = np.rec.fromarrays( training_events_array_sliced, names=[ x[0] for x in variables ] )
 
     # -- Dump output to pickle
+    logging.getLogger("sklBDT::Train").info( "Writing output to disk..." )
     self.ensure_directory( "{}/pickle/".format(self.output_directory) )
     joblib.dump( classifier, "{}/pickle/sklBDT_output.pkl".format(self.output_directory) )
 
@@ -103,5 +103,6 @@ class sklBDT(BaseStrategy) :
     test_events_overall = np.rec.fromarrays( test_events_array_sliced, names=[ x[0] for x in variables ] )
 
     # -- Construct record arrays of correct/incorrect events
+    logging.getLogger("sklBDT::Test").info( "Constructing record arrays of correct/incorrect events..." )
     self.test_correct_events = test_events_overall[ test_events_overall["classID"] == 0 ]
     self.test_incorrect_events = test_events_overall[ test_events_overall["classID"] == 1 ]
