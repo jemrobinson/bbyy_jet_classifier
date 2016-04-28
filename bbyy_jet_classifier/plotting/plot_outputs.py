@@ -66,7 +66,7 @@ def plot_testing_outputs( strategy, input_name ) :
     # -- Output classifier distributions
     figure = plt.figure(figsize=(6,6), dpi=100)
     axes = plt.axes()
-    bins = np.linspace( min((min(correct_test),min(incorrect_test))), max((max(correct_test),max(correct_test))), 50 )
+    bins = np.linspace( min((min(correct_test),min(incorrect_test))), max((max(correct_test),max(correct_test))), 25 )
     plt.hist( correct_test, weights=correct_test_w/sum(correct_test_w), bins=bins, histtype="stepfilled", label="Correct (testing)", color="blue", alpha=0.5 )
     plt.hist( incorrect_test, weights=incorrect_test_w/sum(incorrect_test_w), bins=bins, histtype="stepfilled", label="Incorrect (testing)", color="red", alpha=0.5 )
     plt.legend(loc="upper right")

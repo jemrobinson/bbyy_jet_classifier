@@ -24,7 +24,7 @@ def plot_training_inputs( strategy ) :
     data_correct, data_incorrect = strategy.correct_array[variable], strategy.incorrect_array[variable]
     figure = plt.figure(figsize=(6,6), dpi=100)
     axes = plt.axes()
-    bins = np.linspace( min([min(data_correct),min(data_incorrect)]), max([max(data_correct),max(data_incorrect)]), 50 )
+    bins = np.linspace( min([min(data_correct),min(data_incorrect)]), max([max(data_correct),max(data_incorrect)]), 25 )
     y_1, _, _ = plt.hist( data_correct, weights=np.ones_like(data_correct)/float(len(data_correct)),
       bins=bins, histtype="stepfilled", label="Correct (all)", color="blue", alpha=0.5)
     y_2, _, _ = plt.hist( data_incorrect, weights=np.ones_like(data_incorrect)/float(len(data_incorrect)),
