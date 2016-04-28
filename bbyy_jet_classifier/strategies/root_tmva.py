@@ -61,7 +61,7 @@ class RootTMVA(BaseStrategy) :
     # -- Load TMVA results
     reader.BookMVA("BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory))
 
-    yhat = evaluate_reader(reader, 'BDT', X_test)
+    yhat = evaluate_reader(reader, 'BDT', X)
 
     # # -- Log classification scores
     # logging.getLogger("TMVA_BDT").info( "{} accuracy = {:.2f}%".format(process, 100 * classifier.score( X, y, sample_weight=w)) )

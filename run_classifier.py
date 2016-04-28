@@ -28,23 +28,36 @@ if __name__ == "__main__" :
   ML_strategy = getattr(strategies,args.strategy)( args.output )
   X_train, X_test, y_train, y_test, w_train, w_test = ML_strategy.load_data( args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain )
 
+  # -- Training!
   if args.ftrain > 0 :
       logger.info( "Preparing to train with {}% of events and then test with the remainder".format( int(100*args.ftrain) ) )
+      
       #-- Plot training distributions
-      plotting.plot_inputs( ML_strategy, X_train, y_train, w_train ) # plot the feature distributions
+      plotting.plot_inputs( ML_strategy, X_train, y_train, w_train, process = 'training') # plot the feature distributions
 
       # -- Train classifier
       ML_strategy.train(X_train, y_train, w_train)
 
       # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
-      yhat_train = ML_strategy.test(X_train)
+      yhat_train = ML_strategy.test(X_train, y_train, w_train, process = 'training')
       plotting.plot_outputs( ML_strategy, yhat_train, y_train, w_train, process = 'training', fileID = args.input.replace(".root","")) 
 
   else :
     logger.info( "Preparing to use 100% of sample as testing input" )
 
-  # -- TO DO: IF ARGS.FTRAIN = 100, DO NOT TEST!
-  yhat_test = ML_strategy.test(X_test)
+  # -- Testing!
+  if args.ftrain < 1:
 
-  # -- Plot testing distributions
-  plotting.plot_outputs( ML_strategy, yhat_test, y_test, w_test, process = 'testing', fileID = args.input.replace(".root","") )
+    #-- Plot testing distributions
+    plotting.plot_inputs( ML_strategy, X_test, y_test, w_test, process = 'testing') # plot the feature distributions
+
+    yhat_test = ML_strategy.test(X_test, y_test, w_test, process = 'testing')
+    # -- Plot testing distributions
+    plotting.plot_outputs( ML_strategy, yhat_test, y_test, w_test, process = 'testing', fileID = args.input.replace(".root","") )
+
+  else: 
+    logger.info("100% of the sample was used for training -- no independent testing can be performed.")
+
+
+
+
