@@ -30,7 +30,7 @@ def plot_old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
 	figure.savefig('{}/{}/{}.pdf'.format(outdir, 'testing', old_strategy_name))
 
 
-def plot_inputs(strategy, X, y, w, process):
+def plot_inputs(strategy, classification_variables, X, y, w, process):
 	"""
 	Definition:
 	-----------
@@ -51,7 +51,7 @@ def plot_inputs(strategy, X, y, w, process):
 	strategy.ensure_directory("{}/{}/".format(strategy.output_directory, process))
 
 	# -- Plot distributions of input variables
-	for i, variable in enumerate(strategy.classification_variables): 
+	for i, variable in enumerate(classification_variables): 
 		data_correct = X[y == 1][:, i]
 		data_incorrect = X[y == 0][:, i]
 

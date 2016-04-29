@@ -10,16 +10,19 @@ from sklearn.metrics import classification_report
 class sklBDT(BaseStrategy) :
   default_output_location = "output/sklBDT"
 
-  def train(self, X_train, y_train, w_train):
+  def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
     '''
     Definition:
     -----------
         Training method for sklBDT; it pickles the model into the 'pickle' sub-folder
+
     Args:
     -----
         X_train = the features matrix with events for training, of dimensions (n_events, n_features) 
         y_train = the target array with events for training, of dimensions (n_events)
         w_train = the array of weights for training events, of dimensions (n_events)
+        classification_variables = list of names of variables used for classification
+        variable_dict = ordered dict, mapping all the branches from the TTree to their type
     '''
     # -- Train:
     logging.getLogger("sklBDT").info("Training...")
@@ -31,17 +34,20 @@ class sklBDT(BaseStrategy) :
     joblib.dump(classifier, "{}/pickle/sklBDT_clf.pkl".format(self.output_directory), protocol=cPickle.HIGHEST_PROTOCOL)
 
 
-  def test(self, X, y, w, process):
+  def test(self, X, y, w, classification_variables, process):
     '''
     Definition:
     -----------
         Testing method for sklBDT; it loads the latest model from the 'pickle' sub-folder
+
     Args:
     -----
         X = the features matrix with events to test performance on, of dimensions (n_events, n_features) 
         y = the target array with events to test performance on, of dimensions (n_events)
         w = the array of weights of the events to test performance on, of dimensions (n_events)
         process = string to identify whether we are evaluating performance on the train or test set, usually 'training' or 'testing'
+        classification_variables = list of names of variables used for classification
+        
     Returns:
     --------
         yhat = the array of BDT outputs corresponding to the P(signal), of dimensions (n_events)

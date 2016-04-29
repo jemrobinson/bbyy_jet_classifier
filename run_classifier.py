@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import argparse
-from bbyy_jet_classifier import strategies, plotting
+from bbyy_jet_classifier import strategies, plotting, process_data
 import logging
 import os
 import numpy as np
@@ -27,10 +27,10 @@ if __name__ == "__main__":
 
 	# -- Construct dictionary of available strategies
 	if not args.strategy in strategies.__dict__.keys(): raise AttributeError("{} is not a valid strategy".format(args.strategy))
-
-	# -- Load data for appropriate strategy
 	ML_strategy = getattr(strategies,args.strategy)(args.output)
-	X_train, X_test, y_train, y_test, w_train, w_test, mHmatch_test, pThigh_test = ML_strategy.load_data(
+
+	# -- Load in root files and return literally everything about the data
+	classification_variables, variable_dict, X_train, X_test, y_train, y_test, w_train, w_test, mHmatch_test, pThigh_test = process_data.load_data(
 		args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
 
 	# -- Training!
@@ -38,13 +38,13 @@ if __name__ == "__main__":
 			logger.info("Preparing to train with {}% of events and then test with the remainder".format(int(100*args.ftrain)))
 			
 			#-- Plot training distributions
-			plotting.plot_inputs(ML_strategy, X_train, y_train, w_train, process='training') # plot the feature distributions
+			plotting.plot_inputs(ML_strategy, classification_variables, X_train, y_train, w_train, process='training') # plot the feature distributions
 
 			# -- Train classifier
-			ML_strategy.train(X_train, y_train, w_train)
+			ML_strategy.train(X_train, y_train, w_train, classification_variables, variable_dict)
 
 			# -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
-			yhat_train = ML_strategy.test(X_train, y_train, w_train, process='training')
+			yhat_train = ML_strategy.test(X_train, y_train, w_train, classification_variables, process='training')
 			plotting.plot_outputs( ML_strategy, yhat_train, y_train, w_train, process='training', fileID=args.input.replace(".root","").split("/")[-1]) 
 
 	else :
@@ -54,10 +54,10 @@ if __name__ == "__main__":
 	if args.ftrain < 1:
 
 		#-- Plot input testing distributions
-		plotting.plot_inputs(ML_strategy, X_test, y_test, w_test, process = 'testing') 
+		plotting.plot_inputs(ML_strategy, classification_variables, X_test, y_test, w_test, process = 'testing') 
 
 		# -- TEST
-		yhat_test = ML_strategy.test(X_test, y_test, w_test, process = 'testing')
+		yhat_test = ML_strategy.test(X_test, y_test, w_test, classification_variables, process = 'testing')
 		
 		# -- Plot output testing distributions from classifier and old strategies
 		plotting.plot_outputs(ML_strategy, yhat_test, y_test, w_test, process = 'testing', fileID = args.input.replace(".root","").split("/")[-1] )
