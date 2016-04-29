@@ -25,17 +25,17 @@ def plot_inputs( strategy, X, y, w, process ) :
 
   # -- Plot distributions of input variables
   for i, variable in enumerate(strategy.classification_variables) : 
-    data_correct = X[y == 0][:, i]
-    data_incorrect = X[y == 1][:, i]
+    data_correct = X[y == 1][:, i]
+    data_incorrect = X[y == 0][:, i]
 
     figure = plt.figure(figsize=(6,6), dpi=100)
     axes = plt.axes()
     bins = np.linspace( min([min(data_correct),min(data_incorrect)]), max([max(data_correct),max(data_incorrect)]), 50 )
 
-    y_1, _, _ = plt.hist( data_correct, weights = w[y == 0]/float(sum(w[y == 0])), 
+    y_1, _, _ = plt.hist( data_correct, weights = w[y == 1]/float(sum(w[y == 1])), 
       bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
 
-    y_2, _, _ = plt.hist( data_incorrect, weights = w[y == 1]/float(sum(w[y == 1])), 
+    y_2, _, _ = plt.hist( data_incorrect, weights = w[y == 0]/float(sum(w[y == 0])), 
       bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
     plt.legend(loc="upper right")
@@ -70,8 +70,8 @@ def plot_outputs( strategy, yhat, y, w, process, fileID ) :
   axes = plt.axes()
   bins = np.linspace(min(yhat), max(yhat), 50)
 
-  plt.hist( yhat[y == 0], weights = w[y == 0] / float(sum(w[y == 0])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5 )
-  plt.hist( yhat[y == 1], weights = w[y == 1] / float(sum(w[y == 1])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5 )
+  plt.hist( yhat[y == 1], weights = w[y == 1] / float(sum(w[y == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5 )
+  plt.hist( yhat[y == 0], weights = w[y == 0] / float(sum(w[y == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5 )
   
   plt.legend(loc="upper right")
   plt.xlabel("Classifier Output", position=(1., 0), va='bottom', ha='right')

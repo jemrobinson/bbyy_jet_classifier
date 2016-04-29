@@ -30,7 +30,7 @@ class sklBDT(BaseStrategy) :
     classifier = joblib.load( "{}/pickle/sklBDT_output.pkl".format(self.output_directory) )
 
     # -- Get classifier predictions
-    yhat = classifier.predict_proba(X)[:, 0]
+    yhat = classifier.predict_proba(X)[:, 1]
 
     # -- Log classification scores
     logging.getLogger("sklBDT").info( "{} accuracy = {:.2f}%".format(process, 100 * classifier.score( X, y, sample_weight=w)) )

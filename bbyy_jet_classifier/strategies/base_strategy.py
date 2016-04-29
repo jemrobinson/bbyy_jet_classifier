@@ -34,7 +34,7 @@ class BaseStrategy(object) :
 
     # -- Construct array of features (X) and array of categories (y)
     X = rec2array( np.concatenate(( self.correct_no_weights, self.incorrect_no_weights )) )
-    y = np.concatenate(( np.zeros(self.correct_no_weights.shape[0]), np.ones(self.incorrect_no_weights.shape[0]) ))
+    y = np.concatenate(( np.ones(self.correct_no_weights.shape[0]), np.zeros(self.incorrect_no_weights.shape[0]) ))
     w = rec2array( np.concatenate(( self.correct_weights_only, self.incorrect_weights_only )) )
 
     # -- Construct training and test datasets, automatically permuted

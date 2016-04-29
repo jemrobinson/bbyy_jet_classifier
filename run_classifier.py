@@ -3,6 +3,9 @@ import argparse
 from bbyy_jet_classifier import strategies, plotting
 import logging
 import os
+import numpy as np
+from viz import calculate_roc, ROC_plotter, add_curve
+import cPickle
 
 if __name__ == "__main__" :
   logger = logging.getLogger("RunClassifier")
@@ -52,8 +55,20 @@ if __name__ == "__main__" :
     plotting.plot_inputs( ML_strategy, X_test, y_test, w_test, process = 'testing') # plot the feature distributions
 
     yhat_test = ML_strategy.test(X_test, y_test, w_test, process = 'testing')
+    
     # -- Plot testing distributions
     plotting.plot_outputs( ML_strategy, yhat_test, y_test, w_test, process = 'testing', fileID = args.input.replace(".root","") )
+
+    # -- Add ROC curve
+    logger.info( "Plotting ROC curves..." )
+    discs = {}
+    add_curve(args.strategy, 'black', calculate_roc(y_test, yhat_test), discs)
+    fg = ROC_plotter(discs, min_eff = 0.1, max_eff=1.0, logscale=True)
+    fg.savefig('{}/ROC.pdf'.format(ML_strategy.output_directory))
+
+    # -- Save out ROC curve as pickle for later comparison
+    ML_strategy.ensure_directory( "{}/pickle/".format(ML_strategy.output_directory) )
+    cPickle.dump(discs[args.strategy], open('{}/pickle/{}_ROC.pkl'.format(ML_strategy.output_directory, args.strategy), 'wb'), cPickle.HIGHEST_PROTOCOL)
 
   else: 
     logger.info("100% of the sample was used for training -- no independent testing can be performed.")
