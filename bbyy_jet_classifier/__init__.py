@@ -1,2 +1,2 @@
-from adaptors import *
 from strategies import *
+import process_data

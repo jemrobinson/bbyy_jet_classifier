@@ -4,103 +4,94 @@ import array
 import logging
 import os
 import ROOT
+import logging
 from root_numpy import array2tree, root2rec, tree2array
-import shutil
+from root_numpy.tmva import add_classification_events, evaluate_reader
+from numpy.lib import recfunctions
 
-class RootTMVA(BaseStrategy) :
+class RootTMVA(BaseStrategy):
   default_output_location = "output/RootTMVA"
   classifier_range = ( -1.0, 1.0 )
 
-
-  def train_and_test( self, training_fraction ) :
-    # -- Initialise TMVA tools
-    logging.getLogger("RootTMVA::Train").info( "Initialise TMVA tools" )
-    ROOT.TMVA.Tools.Instance()
-    f_output = ROOT.TFile( "{}/TMVA_output.root".format( self.output_directory ), "RECREATE" )
-    factory = ROOT.TMVA.Factory( "TMVAClassification", f_output, "AnalysisType=Classification" )
-
-    # -- Re-construct trees from arrays:
-    correct_tree = array2tree( self.correct_array, name="correct" )
-    incorrect_tree = array2tree( self.incorrect_array, name="incorrect" )
+  def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
+    '''
+    Definition:
+    -----------
+        Training method for RootTMVA; it saves the model into the 'weights' sub-folder
+    Args:
+    -----
+        X_train = the features matrix with events for training, of dimensions (n_events, n_features) 
+        y_train = the target array with events for training, of dimensions (n_events)
+        w_train = the array of weights for training events, of dimensions (n_events)
+        classification_variables = list of names of variables used for classification
+        variable_dict = ordered dict, mapping all the branches from the TTree to their type
+    '''
+    f_output = ROOT.TFile("{}/TMVA_output.root".format(self.output_directory), "RECREATE")
+    factory = ROOT.TMVA.Factory("TMVAClassification", f_output, "AnalysisType=Classification")
 
     # -- Add variables to the factory:
-    for v_name, v_type in self.variable_dict.items() :
-      if v_name != "event_weight" : factory.AddVariable( v_name, v_type )
-    factory.SetWeightExpression( "event_weight" );
+    # for v_name, v_type in self.variable_dict.items() :
+    #     if v_name != "event_weight": factory.AddVariable( v_name, v_type)
+    for v_name in classification_variables:
+        factory.AddVariable(v_name, variable_dict[v_name])
 
-    # -- Decide how many events to train/test on
-    nTrainSignal, nTrainBackground = int(correct_tree.GetEntries()*training_fraction), int(incorrect_tree.GetEntries()*training_fraction)
-    nTestSignal, nTestBackground = int(correct_tree.GetEntries()-nTrainSignal), int(incorrect_tree.GetEntries()-nTrainBackground)
+    # Call root_numpy's utility functions to add events from the arrays
+    add_classification_events(factory, X_train, y_train, weights=w_train)
+    add_classification_events(factory, X_train[0:20], y_train[0:20], weights=w_train[0:20], test=True) # need to put in something or TMVA will complain
+    
+    # The following line is necessary if events have been added individually:
+    factory.PrepareTrainingAndTestTree(ROOT.TCut('1'), 'NormMode=EqualNumEvents')
 
-    # -- Pass signal and background trees:
-    logging.getLogger("RootTMVA::Train").info( "Prepare signal/background trees" )
-    factory.AddSignalTree( correct_tree )
-    factory.AddBackgroundTree( incorrect_tree )
-    factory.PrepareTrainingAndTestTree( ROOT.TCut(""), ROOT.TCut(""), ":".join(
-      [ "nTrain_Signal={}".format(nTrainSignal), "nTrain_Background={}".format(nTrainBackground),
-        "nTest_Signal={}".format(nTestSignal), "nTest_Background={}".format(nTestBackground),
-        "SplitMode=Random" ]
-    ))
-
-    # -- Define methods:
-    BDT_method = factory.BookMethod( ROOT.TMVA.Types.kBDT, "BDT", ":".join(
-      [ "NTrees=800", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex" ]
-    ))
+    #-- Define methods:
+    BDT_method = factory.BookMethod(ROOT.TMVA.Types.kBDT, "BDT", ":".join(
+        ["NTrees=800", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
+        ))
 
     # -- Where stuff actually happens:
     logging.getLogger("RootTMVA::Train").info( "Train all methods" )
     factory.TrainAllMethods()
-    logging.getLogger("RootTMVA::Train").info( "Test all methods" )
-    factory.TestAllMethods()
-    logging.getLogger("RootTMVA::Train").info( "Evaluate all methods" )
-    factory.EvaluateAllMethods()
 
-    # -- Organize output:
-    logging.getLogger("RootTMVA::Train").info( "Organize output" )
-    if os.path.isdir( "{}/weights".format(self.output_directory) ) :
-      shutil.rmtree( "{}/weights".format(self.output_directory) )
-    shutil.move( "weights", self.output_directory )
+      # -- Organize output:
+    if os.path.isdir("{}/weights".format(self.output_directory)):
+        shutil.rmtree("{}/weights".format(self.output_directory))
+    shutil.move("weights", self.output_directory)
+  
 
-    # -- Load test and training trees into arrays
-    f_output.Close()
-    branches = [ x.replace("event_weight","weight") for x in self.variable_dict.keys() ] + [ "BDT", "classID" ]
-    self.test_events = root2rec( "{}/TMVA_output.root".format(self.output_directory), "TestTree", branches=branches )
-    self.training_events = root2rec( "{}/TMVA_output.root".format(self.output_directory), "TrainTree", branches=branches )
+  def test(self, X, y, w, classification_variables, process):
+    '''
+    Definition:
+    -----------
+        Testing method for RootTMVA; it loads the latest model from the 'weights' sub-folder
+    Args:
+    -----
+        X = the features matrix with events to test performance on, of dimensions (n_events, n_features) 
+        y = the target array with events to test performance on, of dimensions (n_events)
+        w = the array of weights of the events to test performance on, of dimensions (n_events)
+        process = string to identify whether we are evaluating performance on the train or test set, usually 'training' or 'testing'
+        classification_variables = list of names of variables used for classification
 
+    Returns:
+    --------
+        yhat = the array of BDT outputs, of dimensions (n_events)
+    '''
+    logging.getLogger("TMVA_BDT").info("Evaluating Performance...")
 
-
-  def test_only( self ) :
     # -- Setup dictionary of variable names to ROOT-accessible arrays
     variables = {}
 
     # -- Construct reader and add variables to it:
     logging.getLogger("RootTMVA::Test").info( "Construct TMVA reader and add variables to it" )
     reader = ROOT.TMVA.Reader()
-    for v_name in self.classification_variables :
-      variables[v_name] = array.array( root2python.CHAR_2_ARRAYTYPE[self.variable_dict[v_name]] ,[0])
-      reader.AddVariable( v_name, variables[v_name] )
-    variables["BDT"] = array.array( "f", [0] )
+    for v_name in classification_variables:
+      #variables[v_name] = array.array( root2python.CHAR_2_ARRAYTYPE[self.variable_dict[v_name]] ,[0])
+      #reader.AddVariable( v_name, variables[v_name] )
+      #^^ this gives error: --- <FATAL> Reader                   : Reader::AddVariable( const TString& expression, Int_t* datalink ), this function is deprecated, please provide all variables to the reader as floats
+      reader.AddVariable(v_name, array.array('f', [0]))
 
     # -- Load TMVA results
-    logging.getLogger("RootTMVA.Test").info( "Load TMVA reader from disk" )
-    reader.BookMVA( "BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory) )
+    reader.BookMVA("BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory))
 
-    # -- Reconstruct trees from arrays:
-    correct_tree = array2tree( self.correct_array, name="correct" )
-    incorrect_tree = array2tree( self.incorrect_array, name="incorrect" )
+    yhat = evaluate_reader(reader, 'BDT', X)    
+    return yhat
 
-    # -- Calculate BDT output and add to trees
-    logging.getLogger("RootTMVA::Test").info( "Calculate BDT output and add to trees..." )
-    for tree in [ correct_tree, incorrect_tree ] :
-      BDT_branch = tree.Branch( "BDT", variables["BDT"], "D" )
-      for event in tree :
-        for v_name in self.classification_variables : variables[v_name][0] = getattr( event, v_name )
-        variables["BDT"][0] = reader.EvaluateMVA("BDT")
-        BDT_branch.Fill()
-
-    # -- Construct record arrays of correct/incorrect events
-    logging.getLogger("RootTMVA::Test").info( "Constructing record arrays of correct/incorrect events..." )
-    self.test_correct_events = tree2array( correct_tree, branches=self.variable_dict.keys()+["BDT"] )
-    self.test_incorrect_events = tree2array( incorrect_tree, branches=self.variable_dict.keys()+["BDT"] )
-    self.test_correct_events.dtype.names = [ x.replace("event_weight","weight") for x in self.test_correct_events.dtype.names ]
-    self.test_incorrect_events.dtype.names = [ x.replace("event_weight","weight") for x in self.test_incorrect_events.dtype.names ]
+   
