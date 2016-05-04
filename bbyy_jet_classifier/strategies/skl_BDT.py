@@ -1,14 +1,16 @@
-from . import BaseStrategy
-from ..adaptors import root2python
 import logging
+import os
+
 import numpy as np
 import cPickle
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
 
+from . import BaseStrategy
+
 class sklBDT(BaseStrategy) :
-  default_output_location = "output/sklBDT"
+  default_output_location = os.path.join('output', 'sklBDT')
 
   def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
     '''
@@ -30,8 +32,8 @@ class sklBDT(BaseStrategy) :
     classifier.fit(X_train, y_train, sample_weight=w_train)
 
     # -- Dump output to pickle
-    self.ensure_directory("{}/pickle/".format(self.output_directory))
-    joblib.dump(classifier, "{}/pickle/sklBDT_clf.pkl".format(self.output_directory), protocol=cPickle.HIGHEST_PROTOCOL)
+    self.ensure_directory(os.path.join(self.output_directory, 'pickle'))
+    joblib.dump(classifier, os.path.join(self.output_directory, 'pickle', 'sklBDT_clf.pkl'), protocol=cPickle.HIGHEST_PROTOCOL)
 
 
   def test(self, X, y, w, classification_variables, process):
@@ -55,7 +57,7 @@ class sklBDT(BaseStrategy) :
     logging.getLogger("sklBDT").info("Evaluating Performance...")
 
     # -- Load scikit classifier
-    classifier = joblib.load("{}/pickle/sklBDT_clf.pkl".format(self.output_directory))
+    classifier = joblib.load(os.path.join(self.output_directory, 'pickle', 'sklBDT_clf.pkl'))
 
     # -- Get classifier predictions
     yhat = classifier.predict_proba(X)[:, 1]

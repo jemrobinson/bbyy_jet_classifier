@@ -1,6 +1,7 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import os
+import matplotlib.pyplot as plt
+
+import numpy as np
 import rootpy.plotting as rpp
 
 def plot_old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
@@ -27,7 +28,7 @@ def plot_old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
 	plt.legend()
 	plt.xlabel('{} output'.format(old_strategy_name))
 	plt.ylabel('Fraction of events')
-	figure.savefig('{}/{}/{}.pdf'.format(outdir, 'testing', old_strategy_name))
+	figure.savefig(os.path.join(outdir, 'testing', '{}.pdf'.format(old_strategy_name)))
 
 
 def plot_inputs(strategy, classification_variables, X, y, w, process):
@@ -48,7 +49,7 @@ def plot_inputs(strategy, classification_variables, X, y, w, process):
 	rpp.set_style('ATLAS', mpl=True)
 
 	# -- Ensure output directory exists
-	strategy.ensure_directory("{}/{}/".format(strategy.output_directory, process))
+	strategy.ensure_directory(os.path.join(strategy.output_directory, process))
 
 	# -- Plot distributions of input variables
 	for i, variable in enumerate(classification_variables): 
@@ -71,7 +72,7 @@ def plot_inputs(strategy, classification_variables, X, y, w, process):
 		axes.xaxis.set_label_coords(1., -0.15)
 		axes.yaxis.set_label_coords(-0.2, 1.)
 		axes.set_ylim([0, 1.3 * max([1e-5, max(y_1), max(y_2)]) ])
-		figure.savefig("{}/{}/{}.pdf".format(strategy.output_directory, process, variable))
+		figure.savefig(os.path.join(strategy.output_directory, process, '{}.pdf'.format(variable)))
 
 
 def plot_outputs( strategy, yhat, y, w, process, fileID ) :
@@ -92,7 +93,7 @@ def plot_outputs( strategy, yhat, y, w, process, fileID ) :
 	rpp.set_style('ATLAS', mpl=True)
 
 	# -- Ensure output directory exists
-	strategy.ensure_directory("{}/{}/".format(strategy.output_directory, process))
+	strategy.ensure_directory(os.path.join(strategy.output_directory, process))
 
 	figure = plt.figure(figsize=(6,6), dpi=100)
 	axes = plt.axes()
@@ -107,4 +108,4 @@ def plot_outputs( strategy, yhat, y, w, process, fileID ) :
 	axes.xaxis.set_label_coords(1., -0.15)
 	axes.yaxis.set_label_coords(-0.18, 1.)
 	#axes.set_yscale("log", nonposy="clip")
-	figure.savefig("{}/{}/{}_{}.pdf".format(strategy.output_directory, process, "BDT", fileID))
+	figure.savefig(os.path.join(strategy.output_directory, process, 'BDT_{}.pdf'.format(fileID)))

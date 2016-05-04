@@ -1,9 +1,9 @@
-from root_numpy import root2rec
-import numpy as np
-from root_numpy import rec2array
-from sklearn.cross_validation import train_test_split
 import logging
 from collections import OrderedDict
+
+import numpy as np
+from root_numpy import root2rec, rec2array
+from sklearn.cross_validation import train_test_split
 
 TYPE_2_CHAR = {"<i4":"I", "<f8":"D", "<f4":"F"}
 

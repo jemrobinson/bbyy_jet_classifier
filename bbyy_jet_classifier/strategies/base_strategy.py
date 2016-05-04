@@ -4,6 +4,7 @@ import logging
 class BaseStrategy(object):
 
 	def __init__(self, output_directory):
+		self.name = self.__module__.split('.')[-1]
 		self.output_directory = output_directory if output_directory is not None else self.default_output_location
 		self.ensure_directory(self.output_directory)
 

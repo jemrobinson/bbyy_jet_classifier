@@ -1,16 +1,17 @@
-from . import BaseStrategy
-from ..adaptors import root2python
 import array
 import os
 import shutil
-import ROOT
 import logging
+
+import ROOT
 from root_numpy import array2tree, root2rec, tree2array
 from root_numpy.tmva import add_classification_events, evaluate_reader
 from numpy.lib import recfunctions
 
+from . import BaseStrategy
+
 class RootTMVA(BaseStrategy):
-  default_output_location = "output/RootTMVA"
+  default_output_location = os.path.join('output','RootTMVA')
 
   def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
     '''
@@ -25,7 +26,7 @@ class RootTMVA(BaseStrategy):
         classification_variables = list of names of variables used for classification
         variable_dict = ordered dict, mapping all the branches from the TTree to their type
     '''
-    f_output = ROOT.TFile("{}/TMVA_output.root".format(self.output_directory), "RECREATE")
+    f_output = ROOT.TFile(os.path.join(self.output_directory, 'TMVA_output.root'), "RECREATE")
     factory = ROOT.TMVA.Factory("TMVAClassification", f_output, "AnalysisType=Classification")
 
     # -- Add variables to the factory:
@@ -50,8 +51,8 @@ class RootTMVA(BaseStrategy):
     factory.TrainAllMethods()
 
       # -- Organize output:
-    if os.path.isdir("{}/weights".format(self.output_directory)):
-        shutil.rmtree("{}/weights".format(self.output_directory))
+    if os.path.isdir(os.path.join(self.output_directory, 'weights')):
+        shutil.rmtree(os.path.join(self.output_directory, 'weights'))
     shutil.move("weights", self.output_directory)
   
 
@@ -86,7 +87,7 @@ class RootTMVA(BaseStrategy):
       reader.AddVariable(v_name, array.array('f', [0]))
 
     # -- Load TMVA results
-    reader.BookMVA("BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory))
+    reader.BookMVA("BDT", os.path.join(self.output_directory, 'weights', 'TMVAClassification_BDT.weights.xml'))
 
     yhat = evaluate_reader(reader, 'BDT', X)    
     return yhat
