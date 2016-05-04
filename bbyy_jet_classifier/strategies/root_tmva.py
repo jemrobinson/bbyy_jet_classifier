@@ -6,11 +6,12 @@ import ROOT
 from . import BaseStrategy
 from root_numpy.tmva import add_classification_events, evaluate_reader
 
+
 class RootTMVA(BaseStrategy):
     """
     Strategy using a BDT from ROOT TMVA
     """
-    default_output_location = "output/RootTMVA"
+    default_output_location = os.path.join("output", "RootTMVA")
     classifier_range = (-1.0, 1.0)
 
     def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
@@ -26,18 +27,16 @@ class RootTMVA(BaseStrategy):
             classification_variables = list of names of variables used for classification
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
         """
-        f_output = ROOT.TFile("{}/TMVA_output.root".format(self.output_directory), "RECREATE")
+        f_output = ROOT.TFile(os.path.join(self.output_directory, "TMVA_output.root"), "RECREATE")
         factory = ROOT.TMVA.Factory("TMVAClassification", f_output, "AnalysisType=Classification")
 
         # -- Add variables to the factory:
-        # for v_name, v_type in self.variable_dict.items() :
-        #     if v_name != "event_weight": factory.AddVariable( v_name, v_type)
         for v_name in classification_variables:
             factory.AddVariable(v_name, variable_dict[v_name])
 
-        # Call root_numpy"s utility functions to add events from the arrays
+        # Call root_numpy's utility functions to add events from the arrays
         add_classification_events(factory, X_train, y_train, weights=w_train)
-        add_classification_events(factory, X_train[0:20], y_train[0:20], weights=w_train[0:20], test=True) # need to put in something or TMVA will complain
+        add_classification_events(factory, X_train[0:20], y_train[0:20], weights=w_train[0:20], test=True)  # need to put in something or TMVA will complain
 
         # The following line is necessary if events have been added individually:
         factory.PrepareTrainingAndTestTree(ROOT.TCut("1"), "NormMode=EqualNumEvents")
@@ -52,10 +51,9 @@ class RootTMVA(BaseStrategy):
         factory.TrainAllMethods()
 
         # -- Organize output:
-        if os.path.isdir("{}/weights".format(self.output_directory)):
-            shutil.rmtree("{}/weights".format(self.output_directory))
+        if os.path.isdir(os.path.join(self.output_directory, "weights")):
+            shutil.rmtree(os.path.join(self.output_directory, "weights"))
         shutil.move("weights", self.output_directory)
-
 
     def test(self, X, y, w, classification_variables, process):
         """
@@ -83,7 +81,7 @@ class RootTMVA(BaseStrategy):
             reader.AddVariable(v_name, array.array("f", [0]))
 
         # -- Load TMVA results
-        reader.BookMVA("BDT", "{}/weights/TMVAClassification_BDT.weights.xml".format(self.output_directory))
+        reader.BookMVA("BDT", os.path.join(self.output_directory, "weights", "TMVAClassification_BDT.weights.xml"))
 
         yhat = evaluate_reader(reader, "BDT", X)
         return yhat

@@ -1,22 +1,23 @@
 import cPickle
 import logging
+import os
 from . import BaseStrategy
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
 
+
 class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_location = "output/sklBDT"
-    classifier_range = (0.0, 1.0)
+    default_output_location = os.path.join("output", "sklBDT")
 
     def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
         """
         Definition:
         -----------
-            Training method for sklBDT; it pickles the model into the 'pickle' sub-folder
+            Training method for sklBDT; it pickles the model into the "pickle" sub-folder
 
         Args:
         -----
@@ -32,22 +33,24 @@ class sklBDT(BaseStrategy):
         classifier.fit(X_train, y_train, sample_weight=w_train)
 
         # -- Dump output to pickle
-        BaseStrategy.ensure_directory("{}/pickle/".format(self.output_directory))
+        self.ensure_directory("{}/pickle/".format(self.output_directory))
         joblib.dump(classifier, "{}/pickle/sklBDT_clf.pkl".format(self.output_directory), protocol=cPickle.HIGHEST_PROTOCOL)
 
+        self.ensure_directory(os.path.join(self.output_directory, "pickle"))
+        joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
     def test(self, X, y, w, classification_variables, process):
         """
         Definition:
         -----------
-            Testing method for sklBDT; it loads the latest model from the 'pickle' sub-folder
+            Testing method for sklBDT; it loads the latest model from the "pickle" sub-folder
 
         Args:
         -----
             X = the features matrix with events to test performance on, of dimensions (n_events, n_features)
             y = the target array with events to test performance on, of dimensions (n_events)
             w = the array of weights of the events to test performance on, of dimensions (n_events)
-            process = string to identify whether we are evaluating performance on the train or test set, usually 'training' or 'testing'
+            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
 
         Returns:
@@ -61,6 +64,9 @@ class sklBDT(BaseStrategy):
 
         # -- Get classifier predictions
         yhat = classifier.predict_proba(X)[:, 1]
+
+        # -- Load scikit classifier
+        classifier = joblib.load(os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"))
 
         # -- Log classification scores
         logging.getLogger("sklBDT::test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(X, y, sample_weight=w)))

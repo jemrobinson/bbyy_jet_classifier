@@ -1,13 +1,13 @@
-from collections import OrderedDict
 import logging
 import numpy as np
+from collections import OrderedDict
 from root_numpy import rec2array, root2rec
 from sklearn.cross_validation import train_test_split
 
-TYPE_2_CHAR = {"<i4":"I", "<f8":"D", "<f4":"F"}
+TYPE_2_CHAR = {"<i4": "I", "<f8": "D", "<f4": "F"}
 
-def load_data(input_filename, correct_treename, incorrect_treename,
-              excluded_variables, training_fraction):
+
+def load_data(input_filename, correct_treename, incorrect_treename, excluded_variables, training_fraction):
     """
     Definition:
     -----------
@@ -37,7 +37,8 @@ def load_data(input_filename, correct_treename, incorrect_treename,
     correct_recarray = root2rec(input_filename, correct_treename)
     incorrect_recarray = root2rec(input_filename, incorrect_treename)
     variable_dict = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr))
-    classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight", "idx_by_mH", "idx_by_pT"]]
+    # classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight", "idx_by_mH", "idx_by_pT"]]
+    classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight"]]
 
     correct_recarray_feats = correct_recarray[classification_variables]
     incorrect_recarray_feats = incorrect_recarray[classification_variables]
@@ -45,9 +46,9 @@ def load_data(input_filename, correct_treename, incorrect_treename,
     # -- Construct array of features (X) and array of categories (y)
     X = rec2array(np.concatenate((correct_recarray_feats, incorrect_recarray_feats)))
     y = np.concatenate((np.ones(correct_recarray_feats.shape[0]), np.zeros(incorrect_recarray_feats.shape[0])))
-    w = np.concatenate((correct_recarray['event_weight'], incorrect_recarray['event_weight']))
-    mHmatch = np.concatenate((correct_recarray['idx_by_mH'] == 0, incorrect_recarray['idx_by_mH'] == 0))
-    pThigh = np.concatenate((correct_recarray['idx_by_pT'] == 0, incorrect_recarray['idx_by_pT'] == 0))
+    w = np.concatenate((correct_recarray["event_weight"], incorrect_recarray["event_weight"]))
+    mHmatch = np.concatenate((correct_recarray["idx_by_mH"] == 0, incorrect_recarray["idx_by_mH"] == 0))
+    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))
 
     # -- Construct training and test datasets, automatically permuted
     X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = train_test_split(
