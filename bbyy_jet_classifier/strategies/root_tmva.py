@@ -1,6 +1,11 @@
 import array
+import logging
 import os
+<<<<<<< HEAD
 import shutil
+=======
+import ROOT
+>>>>>>> 319488d15f32b6385471a83539de9be22ec81f59
 import logging
 
 import ROOT
@@ -48,6 +53,7 @@ class RootTMVA(BaseStrategy):
         ))
 
     # -- Where stuff actually happens:
+    logging.getLogger("RootTMVA::Train").info( "Train all methods" )
     factory.TrainAllMethods()
 
       # -- Organize output:
@@ -79,6 +85,7 @@ class RootTMVA(BaseStrategy):
     variables = {}
 
     # -- Construct reader and add variables to it:
+    logging.getLogger("RootTMVA::Test").info( "Construct TMVA reader and add variables to it" )
     reader = ROOT.TMVA.Reader()
     for v_name in classification_variables:
       #variables[v_name] = array.array( root2python.CHAR_2_ARRAYTYPE[self.variable_dict[v_name]] ,[0])
