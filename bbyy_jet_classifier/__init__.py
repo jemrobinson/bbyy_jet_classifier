@@ -1,2 +1,2 @@
-from strategies import *
 import process_data
+import strategies
