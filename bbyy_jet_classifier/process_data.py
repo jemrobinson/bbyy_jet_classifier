@@ -1,13 +1,27 @@
+from collections import OrderedDict
 import logging
 import numpy as np
-from collections import OrderedDict
 from root_numpy import rec2array, root2rec
 from sklearn.cross_validation import train_test_split
+from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"<i4": "I", "<f8": "D", "<f4": "F"}
 
 
-def load_data(input_filename, correct_treename, incorrect_treename, excluded_variables, training_fraction):
+class dataset(object):
+    """
+    Definition:
+    -----------
+            Wrapper to group features, target values and weights
+    """
+
+    def __init__(self, X, y, w):
+        self.X = X
+        self.y = y
+        self.w = w
+
+
+def load(input_filename, correct_treename, incorrect_treename, excluded_variables, training_fraction):
     """
     Definition:
     -----------
@@ -34,10 +48,12 @@ def load_data(input_filename, correct_treename, incorrect_treename, excluded_var
             mHmatch_test = output of binary decision based on jet pair with closest m_jb to 125GeV
             pThigh_test = output of binary decision based on jet with highest pT
     """
+    logging.getLogger("process_data.load").info("Loading input from ROOT files")
+    for v_name in excluded_variables:
+        logging.getLogger("process_data.load").info("... excluding variable {}".format(v_name))
     correct_recarray = root2rec(input_filename, correct_treename)
     incorrect_recarray = root2rec(input_filename, incorrect_treename)
-    variable_dict = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr))
-    # classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight", "idx_by_mH", "idx_by_pT"]]
+    variable_dict = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr if v_name not in excluded_variables))
     classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight"]]
 
     correct_recarray_feats = correct_recarray[classification_variables]
@@ -51,12 +67,15 @@ def load_data(input_filename, correct_treename, incorrect_treename, excluded_var
     pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))
 
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = train_test_split(
-        X, y, w, mHmatch, pThigh, train_size=training_fraction)
+    X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
+        train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
+    train = dataset(X_train, y_train, w_train)
+    test = dataset(X_test, y_test, w_test)
 
     # -- ANOVA for feature selection (please, know what you're doing)
-    feature_selection(X_train, y_train, classification_variables, 5)
+    feature_selection(train.X, train.y, classification_variables, 5)
 
+    # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
     return classification_variables, variable_dict, X_train, X_test, y_train, y_test, w_train, w_test, mHmatch_test, pThigh_test
 
 
@@ -76,9 +95,8 @@ def feature_selection(X_train, y_train, features, k):
     """
 
     # -- Select the k top features, as ranked using ANOVA F-score
-    from sklearn.feature_selection import SelectKBest, f_classif
     tf = SelectKBest(score_func=f_classif, k=k)
     Xt = tf.fit_transform(X_train, y_train)
 
-    # -- Plot support and return names of top features
+    # -- Return names of top features
     logging.getLogger("RunClassifier").info("The {} most important features are {}".format(k, [f for (_, f) in sorted(zip(tf.scores_, features), reverse=True)][:k]))

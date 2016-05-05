@@ -28,7 +28,7 @@ class sklBDT(BaseStrategy):
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
         """
         # -- Train:
-        logging.getLogger("sklBDT::train").info("Training...")
+        logging.getLogger("sklBDT.train").info("Training...")
         classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(X_train, y_train, sample_weight=w_train)
 
@@ -57,7 +57,7 @@ class sklBDT(BaseStrategy):
         --------
             yhat = the array of BDT outputs corresponding to the P(signal), of dimensions (n_events)
         """
-        logging.getLogger("sklBDT::test").info("Evaluating Performance...")
+        logging.getLogger("sklBDT.test").info("Evaluating performance...")
 
         # -- Load scikit classifier
         classifier = joblib.load("{}/pickle/sklBDT_clf.pkl".format(self.output_directory))
@@ -69,7 +69,7 @@ class sklBDT(BaseStrategy):
         classifier = joblib.load(os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"))
 
         # -- Log classification scores
-        logging.getLogger("sklBDT::test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(X, y, sample_weight=w)))
-        logging.getLogger("sklBDT::test").info(classification_report(y, classifier.predict(X), target_names=["correct", "incorrect"], sample_weight=w))
+        logging.getLogger("sklBDT.test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(X, y, sample_weight=w)))
+        logging.getLogger("sklBDT.test").info(classification_report(y, classifier.predict(X), target_names=["correct", "incorrect"], sample_weight=w))
 
         return yhat

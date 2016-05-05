@@ -16,7 +16,6 @@ Usage:
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from sklearn.metrics import roc_curve
 
 
@@ -45,7 +44,6 @@ def get_weights(target, actual, bins=10, cap=10, match=True):
     counts = (1.0 * counts)
     counts = np.array([max(a, 0.0001) for a in counts])
     multiplier = np.array((target_counts / counts).tolist() + [1.0])
-    print type(target_counts), type(target_bins)
 
     weights = np.array([min(multiplier[target_bins.searchsorted(point) - 1], cap) for point in actual])
 
@@ -75,7 +73,7 @@ def calculate_roc(labels, discriminant, weights=None):
     """
     fpr, tpr, _ = roc_curve(labels, discriminant, sample_weight=weights)
     sig_eff = tpr
-    bkg_rej = 1.0 / fpr if fpr > 0.0 else 0.0
+    bkg_rej = np.reciprocal(fpr)
     return sig_eff, bkg_rej
 
 
