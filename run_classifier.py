@@ -55,10 +55,9 @@ if __name__ == "__main__":
 
     # -- Testing!
     if args.ftrain < 1:
-        # #-- Plot input testing distributions
-        # plotting.input_distributions(ML_strategy, classification_variables, X_test, y_test, w_test, process="testing")
-        # Is this useful? It's probably worth plotting these points on top of the training ones to check for bias
-
+        #-- Plot input testing distributions
+        plotting.input_distributions(ML_strategy, classification_variables, X_test, y_test, w_test, process="testing")
+        
         # -- TEST
         yhat_test = ML_strategy.test(X_test, y_test, w_test, classification_variables, process="testing")
 
@@ -69,7 +68,7 @@ if __name__ == "__main__":
 
         # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
         logging.getLogger("RunClassifier").info("Plotting ROC curves...")
-        plotting.signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test)
+        plotting.roc(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test)
 
     else:
         logging.getLogger("RunClassifier").info("100% of the sample was used for training -- no independent testing can be performed.")

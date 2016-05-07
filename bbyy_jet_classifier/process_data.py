@@ -7,20 +7,6 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"<i4": "I", "<f8": "D", "<f4": "F"}
 
-
-class dataset(object):
-    """
-    Definition:
-    -----------
-            Wrapper to group features, target values and weights
-    """
-
-    def __init__(self, X, y, w):
-        self.X = X
-        self.y = y
-        self.w = w
-
-
 def load(input_filename, correct_treename, incorrect_treename, excluded_variables, training_fraction):
     """
     Definition:
@@ -69,11 +55,11 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     # -- Construct training and test datasets, automatically permuted
     X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
         train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
-    train = dataset(X_train, y_train, w_train)
-    test = dataset(X_test, y_test, w_test)
+    # train = dataset(X_train, y_train, w_train)
+    # test = dataset(X_test, y_test, w_test)
 
     # -- ANOVA for feature selection (please, know what you're doing)
-    feature_selection(train.X, train.y, classification_variables, 5)
+    feature_selection(X_train, y_train, classification_variables, 5)
 
     # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
     return classification_variables, variable_dict, X_train, X_test, y_train, y_test, w_train, w_test, mHmatch_test, pThigh_test

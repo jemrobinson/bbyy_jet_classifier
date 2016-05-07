@@ -4,7 +4,17 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import rootpy.plotting as rpp
-from sklearn.metrics import roc_curve
+from viz import add_curve, calculate_roc, ROC_plotter
+
+def atlaslabel(ax, fontsize=20):
+    # -- Add ATLAS text
+    plt.text(0.1,0.9, 'ATLAS', va='bottom', ha='left', color='black', size=fontsize, 
+             fontname = 'sans-serif', weight = 'bold', style = 'oblique',transform=ax.transAxes)
+    plt.text(0.23, 0.9, 'Work In Progress', va='bottom', ha='left', color='black', size=fontsize,
+            fontname = 'sans-serif', transform=ax.transAxes)
+    plt.text(0.1, 0.83, 
+             r'$\sqrt{s} = 13 TeV :\ \ \int Ldt = 1.04\ fb^{-1}$', # change number according to actual data used!
+             va='bottom', ha='left', color='black', size=fontsize, fontname = 'sans-serif', transform=ax.transAxes)
 
 
 def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
@@ -29,7 +39,9 @@ def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
     plt.legend()
     plt.xlabel("{} output".format(old_strategy_name))
     plt.ylabel("Fraction of events")
-    figure.savefig("{}/{}/{}.pdf".format(outdir, "testing", old_strategy_name))
+    axes = plt.axes()
+    atlaslabel(axes, fontsize=10)
+    figure.savefig(os.path.join(outdir, "testing", "{}.pdf".format(old_strategy_name)))
 
 
 def input_distributions(strategy, classification_variables, X, y, w, process):
@@ -50,7 +62,7 @@ def input_distributions(strategy, classification_variables, X, y, w, process):
     logging.getLogger("Plotting").info("Plotting input distributions")
 
     # -- Ensure output directory exists
-    strategy.ensure_directory("{}/{}/".format(strategy.output_directory, process))
+    strategy.ensure_directory(os.path.join(strategy.output_directory, process))
 
     # -- Plot distributions of input variables
     for i, variable in enumerate(classification_variables):
@@ -68,7 +80,8 @@ def input_distributions(strategy, classification_variables, X, y, w, process):
         axes.xaxis.set_label_coords(1., -0.15)
         axes.yaxis.set_label_coords(-0.2, 1.)
         axes.set_ylim([0, 1.3 * max([1e-5, max(y_1), max(y_2)])])
-        figure.savefig("{}/{}/{}.pdf".format(strategy.output_directory, process, variable))
+        atlaslabel(axes, fontsize=10)
+        figure.savefig(os.path.join(strategy.output_directory, process, "{}.pdf".format(variable)))
         plt.close(figure)
 
 
@@ -102,14 +115,15 @@ def classifier_output(ML_strategy, yhat, y, w, process, fileID):
 
     plt.legend(loc="upper right")
     plt.xlabel("Classifier Output", position=(1., 0), va="bottom", ha="right")
-    plt.ylabel("Fraction of events", position=(0, 1.), va="top", ha="right")
+    plt.ylabel("Fraction of Events", position=(0, 1.), va="top", ha="right")
     axes.xaxis.set_label_coords(1., -0.15)
     axes.yaxis.set_label_coords(-0.18, 1.)
-    figure.savefig("{}/{}/{}_{}.pdf".format(ML_strategy.output_directory, process, "BDT", fileID))
+    atlaslabel(axes, fontsize=10)
+    figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(fileID)))
     plt.close(figure)
 
 
-def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test):
+def roc(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test):
     """
     Definition:
     -----------
@@ -142,23 +156,15 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
          }, open(os.path.join(ML_strategy.output_directory, "pickle", "old_strategies_dict.pkl"), "wb"))
 
     # -- Add ROC curves and efficiency points for old strategies
-    fpr, tpr, _ = roc_curve(y_test, yhat_test)
-    figure = plt.figure(figsize=(6, 6), dpi=100)
-    axes = plt.axes()
-    plt.plot(tpr[1:], np.reciprocal(fpr[1:]), "-", label=ML_strategy.name, color="black")  # ignore first point to avoid division by zero
+    discs = {}
+    add_curve(ML_strategy.name, "black", calculate_roc(y_test, yhat_test), discs)
+    fg = ROC_plotter(discs, min_eff=0.1, max_eff=1.0, logscale=True)
     plt.plot(eff_mH_signal, 1.0 / eff_mH_bkg, marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
-    plt.xlabel(r"$\varepsilon_{\mathrm{signal}}$", position=(1., 0), va="bottom", ha="right")
-    plt.ylabel(r"$1 / \varepsilon_{\mathrm{background}}$", position=(0., 1.), va="top", ha="right")
-    # axes.set_xlabel(r"$\varepsilon_{\mathrm{signal}}$")
-    # axes.set_ylabel(r"$1 / \varepsilon_{\mathrm{background}}$")
-    axes.xaxis.set_label_coords(1., -0.15)
-    axes.yaxis.set_label_coords(-0.2, 1.)
-    axes.set_yscale("log", nonposy="clip")
-    figure.savefig("{}/{}_{}.pdf".format(ML_strategy.output_directory, "ROC", ML_strategy.name))
-    plt.close(figure)
-
+    axes = plt.axes()
+    atlaslabel(axes)
+    fg.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
     # -- Save out ROC curve as pickle for later comparison
-    cPickle.dump({"efficiency": fpr, "rejection": tpr}, open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
-    # cPickle.dump(discs[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
+    cPickle.dump(discs[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
+
