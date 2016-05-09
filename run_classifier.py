@@ -3,7 +3,7 @@ import argparse
 import logging
 import os
 from bbyy_jet_classifier import strategies, process_data
-from bbyy_jet_classifier.plotting import plotinputs, plotoutputs, roc
+from bbyy_jet_classifier.plotting import plot_inputs, plot_outputs, roc
 
 if __name__ == "__main__":
     # -- Configure logging
@@ -42,14 +42,14 @@ if __name__ == "__main__":
         logging.getLogger("RunClassifier").info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
 
         #-- Plot training distributions
-        plotinputs.input_distributions(ML_strategy, classification_variables, X_train, y_train, w_train, process="training")  # plot the feature distributions
+        plot_inputs.input_distributions(ML_strategy, classification_variables, X_train, y_train, w_train, process="training")  # plot the feature distributions
 
         # -- Train classifier
         ML_strategy.train(X_train, y_train, w_train, classification_variables, variable_dict)
 
         # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
         yhat_train = ML_strategy.test(X_train, y_train, w_train, classification_variables, process="training")
-        plotoutputs.classifier_output(ML_strategy, yhat_train, y_train, w_train, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
+        plot_outputs.classifier_output(ML_strategy, yhat_train, y_train, w_train, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
 
     else:
         logging.getLogger("RunClassifier").info("Preparing to use 100% of sample as testing input")
@@ -57,15 +57,15 @@ if __name__ == "__main__":
     # -- Testing!
     if args.ftrain < 1:
         #-- Plot input testing distributions
-        plotinputs.input_distributions(ML_strategy, classification_variables, X_test, y_test, w_test, process="testing")
+        plot_inputs.input_distributions(ML_strategy, classification_variables, X_test, y_test, w_test, process="testing")
         
         # -- TEST
         yhat_test = ML_strategy.test(X_test, y_test, w_test, classification_variables, process="testing")
 
         # -- Plot output testing distributions from classifier and old strategies
-        plotoutputs.classifier_output(ML_strategy, yhat_test, y_test, w_test, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
-        plotoutputs.old_strategy(ML_strategy.output_directory, mHmatch_test, y_test, w_test, "mHmatch")
-        plotoutputs.old_strategy(ML_strategy.output_directory, pThigh_test, y_test, w_test, "pThigh")
+        plot_outputs.classifier_output(ML_strategy, yhat_test, y_test, w_test, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
+        plot_outputs.old_strategy(ML_strategy.output_directory, mHmatch_test, y_test, w_test, "mHmatch")
+        plot_outputs.old_strategy(ML_strategy.output_directory, pThigh_test, y_test, w_test, "pThigh")
 
         # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
         logging.getLogger("RunClassifier").info("Plotting ROC curves...")

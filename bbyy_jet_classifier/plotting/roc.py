@@ -7,7 +7,7 @@ import numpy as np
 import rootpy.plotting as rpp
 
 from viz import add_curve, calculate_roc, ROC_plotter
-import plotatlas
+import plot_atlas
 
 def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test):
     """
@@ -49,7 +49,7 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     axes = plt.axes()
-    plotatlas.atlaslabel(axes)
+    plot_atlas.atlaslabel(axes)
     fg.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
     # -- Save out ROC curve as pickle for later comparison
     cPickle.dump(discs[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)

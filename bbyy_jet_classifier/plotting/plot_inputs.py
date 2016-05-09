@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rootpy.plotting as rpp
 
-import plotatlas
+import plot_atlas
 
 def input_distributions(strategy, classification_variables, X, y, w, process):
     """
@@ -43,6 +43,6 @@ def input_distributions(strategy, classification_variables, X, y, w, process):
         axes.xaxis.set_label_coords(1., -0.15)
         axes.yaxis.set_label_coords(-0.2, 1.)
         axes.set_ylim([0, 1.3 * max([1e-5, max(y_1), max(y_2)])])
-        plotatlas.atlaslabel(axes, fontsize=10)
+        plot_atlas.atlaslabel(axes, fontsize=10)
         figure.savefig(os.path.join(strategy.output_directory, process, "{}.pdf".format(variable)))
         plt.close(figure)

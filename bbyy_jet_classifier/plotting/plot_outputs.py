@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rootpy.plotting as rpp
 
-import plotatlas
+import plot_atlas
 
 def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
     """
@@ -30,7 +30,7 @@ def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
     plt.xlabel("{} output".format(old_strategy_name))
     plt.ylabel("Fraction of events")
     axes = plt.axes()
-    plotatlas.atlaslabel(axes, fontsize=10)
+    plot_atlas.atlaslabel(axes, fontsize=10)
     figure.savefig(os.path.join(outdir, "testing", "{}.pdf".format(old_strategy_name)))
 
 
@@ -67,6 +67,6 @@ def classifier_output(ML_strategy, yhat, y, w, process, fileID):
     plt.ylabel("Fraction of Events", position=(0, 1.), va="top", ha="right")
     axes.xaxis.set_label_coords(1., -0.15)
     axes.yaxis.set_label_coords(-0.18, 1.)
-    plotatlas.atlaslabel(axes, fontsize=10)
+    plot_atlas.atlaslabel(axes, fontsize=10)
     figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(fileID)))
     plt.close(figure)
