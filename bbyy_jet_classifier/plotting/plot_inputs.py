@@ -16,9 +16,10 @@ def input_distributions(strategy, classification_variables, data, process):
     Args:
     -----
             strategy = a classification method -- here either sklBDT or RootTMVA
-            X = the feature matrix (ndarray)
-            y = the target array
-            w = the array of weights
+            data = dictionary, containing 'X', 'y', 'w' for a dataset, where:
+                X = ndarray of dim (# examples, # features)
+                y = array of dim (# examples) with target values
+                w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
     """
     rpp.set_style("ATLAS", mpl=True)

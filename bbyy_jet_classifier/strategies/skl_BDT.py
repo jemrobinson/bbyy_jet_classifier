@@ -21,9 +21,10 @@ class sklBDT(BaseStrategy):
 
         Args:
         -----
-            X_train = the features matrix with events for training, of dimensions (n_events, n_features)
-            y_train = the target array with events for training, of dimensions (n_events)
-            w_train = the array of weights for training events, of dimensions (n_events)
+            train_data = dictionary, containing 'X', 'y', 'w' for the training set, where:
+                X = ndarray of dim (# training examples, # features)
+                y = array of dim (# training examples) with target values
+                w = array of dim (# training examples) with event weights
             classification_variables = list of names of variables used for classification
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
         """
@@ -47,9 +48,10 @@ class sklBDT(BaseStrategy):
 
         Args:
         -----
-            X = the features matrix with events to test performance on, of dimensions (n_events, n_features)
-            y = the target array with events to test performance on, of dimensions (n_events)
-            w = the array of weights of the events to test performance on, of dimensions (n_events)
+            data = dictionary, containing 'X', 'y', 'w' for the set to evaluate performance on, where:
+                X = ndarray of dim (# examples, # features)
+                y = array of dim (# examples) with target values
+                w = array of dim (# examples) with event weights
             process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
 

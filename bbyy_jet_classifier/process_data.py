@@ -25,12 +25,14 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     --------
             classification_variables = list of names of variables used for classification
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
-            X_train = ndarray of dim (# training examples, # features)
-            X_test = ndarray of dim (# testing examples, # features)
-            y_train = array of dim (# training examples) with target values
-            y_test = array of dim (# testing examples) with target values
-            w_train = array of dim (# training examples) with event weights
-            w_test = array of dim (# testing examples) with event weights
+            train_data = dictionary, containing 'X', 'y', 'w' for the training set, where:
+                X = ndarray of dim (# training examples, # features)
+                y = array of dim (# training examples) with target values
+                w = array of dim (# training examples) with event weights
+            test_data = dictionary, containing 'X', 'y', 'w' for the test set, where:
+                X = ndarray of dim (# testing examples, # features)
+                y = array of dim (# testing examples) with target values
+                w = array of dim (# testing examples) with event weights
             mHmatch_test = output of binary decision based on jet pair with closest m_jb to 125GeV
             pThigh_test = output of binary decision based on jet with highest pT
     """
@@ -76,7 +78,9 @@ def feature_selection(train_data, features, k):
 
     Args:
     -----
-            train_data = dictionary containing keys 'X' and 'y', corresponding to the feature matrix and target array for the training set
+            train_data = dictionary containing keys 'X' and 'y' for the training set, where:
+                X = ndarray of dim (# training examples, # features)
+                y = array of dim (# training examples) with target values 
             features = names of features used for training in the order in which they were inserted into X
             k = int, the function will print the top k features in order of importance
     """

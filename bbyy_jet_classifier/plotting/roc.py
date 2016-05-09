@@ -21,8 +21,9 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
         mHmatch_test = array of dim (# testing examples), containing the binary decision based the "closest mH" strategy
         pThigh_test = array of dim (# testing examples), containing the binary decision based the "highest pT" strategy
         yhat_test = array of dim (# testing examples), with predictions from the ML_strategy
-        y_test = array of dim (# testing examples) with target values
-        w_test = array of dim (# testing examples) with event weights
+        test_data = dictionary, containing 'y', 'w' for the test set, where:
+                y = array of dim (# testing examples) with target values
+                w = array of dim (# testing examples) with event weights
     """
     rpp.set_style("ATLAS", mpl=True)
     logging.getLogger("Plotting").info("Plotting performance")

@@ -17,8 +17,9 @@ def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
     -----
             outdir = string, the name of the output directory to save the plots
             yhat_test = array of dim (# testing examples), containing the binary decision based on the specific strategy
-            y_test = array of dim (# testing examples) with target values
-            w_test = array of dim (# testing examples) with event weights
+            test_data = dictionary, containing 'y', 'w' for the test set, where:
+                y = array of dim (# testing examples) with target values
+                w = array of dim (# testing examples) with event weights
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
     """
     logging.getLogger("Plotting").info("Plotting old strategy")
@@ -46,8 +47,9 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
     -----
             ML_strategy = one of the machine learning strategy in strategies/ whose prerformance we want to visualize
             yhat = the array of predictions
-            y = the target array
-            w = the array of weights
+            data = dictionary, containing 'y', 'w' for the set to evaluate performance on, where:
+                y = array of dim (# examples) with target values
+                w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
             fileID = arbitrary string that refers back to the input file, usually
     """
