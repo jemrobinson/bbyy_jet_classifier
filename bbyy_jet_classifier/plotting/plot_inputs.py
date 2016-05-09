@@ -7,7 +7,7 @@ import rootpy.plotting as rpp
 
 import plot_atlas
 
-def input_distributions(strategy, classification_variables, X, y, w, process):
+def input_distributions(strategy, classification_variables, data, process):
     """
     Definition:
     -----------
@@ -16,9 +16,10 @@ def input_distributions(strategy, classification_variables, X, y, w, process):
     Args:
     -----
             strategy = a classification method -- here either sklBDT or RootTMVA
-            X = the feature matrix (ndarray)
-            y = the target array
-            w = the array of weights
+            data = dictionary, containing 'X', 'y', 'w' for a dataset, where:
+                X = ndarray of dim (# examples, # features)
+                y = array of dim (# examples) with target values
+                w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
     """
     rpp.set_style("ATLAS", mpl=True)
@@ -29,14 +30,14 @@ def input_distributions(strategy, classification_variables, X, y, w, process):
 
     # -- Plot distributions of input variables
     for i, variable in enumerate(classification_variables):
-        data_correct = X[y == 1][:, i]
-        data_incorrect = X[y == 0][:, i]
+        data_correct = data['X'][data['y'] == 1][:, i]
+        data_incorrect = data['X'][data['y'] == 0][:, i]
 
         figure = plt.figure(figsize=(6, 6), dpi=100)
         axes = plt.axes()
         bins = np.linspace(min([min(data_correct), min(data_incorrect)]), max([max(data_correct), max(data_incorrect)]), 50)
-        y_1, _, _ = plt.hist(data_correct, weights=w[y == 1] / float(sum(w[y == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-        y_2, _, _ = plt.hist(data_incorrect, weights=w[y == 0] / float(sum(w[y == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+        y_1, _, _ = plt.hist(data_correct, weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+        y_2, _, _ = plt.hist(data_incorrect, weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
         plt.legend(loc="upper right")
         plt.xlabel(variable, position=(1., 0), va="bottom", ha="right")
         plt.ylabel("Fraction of events", position=(0., 1.), va="top", ha="right")

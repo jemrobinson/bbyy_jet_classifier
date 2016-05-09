@@ -7,7 +7,7 @@ import rootpy.plotting as rpp
 
 import plot_atlas
 
-def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
+def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
     """
     Definition:
     -----------
@@ -17,15 +17,18 @@ def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
     -----
             outdir = string, the name of the output directory to save the plots
             yhat_test = array of dim (# testing examples), containing the binary decision based on the specific strategy
-            y_test = array of dim (# testing examples) with target values
-            w_test = array of dim (# testing examples) with event weights
+            test_data = dictionary, containing 'y', 'w' for the test set, where:
+                y = array of dim (# testing examples) with target values
+                w = array of dim (# testing examples) with event weights
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
     """
     logging.getLogger("Plotting").info("Plotting old strategy")
     figure = plt.figure(figsize=(6, 6), dpi=100)
     #ax = figure.add_subplot(111)
-    plt.hist(yhat_test[y_test == 1], weights=w_test[y_test == 1] / float(sum(w_test[y_test == 1])), bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-    plt.hist(yhat_test[y_test == 0], weights=w_test[y_test == 0] / float(sum(w_test[y_test == 0])), bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])), 
+        bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+    plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])), 
+        bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
     plt.legend()
     plt.xlabel("{} output".format(old_strategy_name))
     plt.ylabel("Fraction of events")
@@ -34,7 +37,7 @@ def old_strategy(outdir, yhat_test, y_test, w_test, old_strategy_name):
     figure.savefig(os.path.join(outdir, "testing", "{}.pdf".format(old_strategy_name)))
 
 
-def classifier_output(ML_strategy, yhat, y, w, process, fileID):
+def classifier_output(ML_strategy, yhat, data, process, fileID):
     """
     Definition:
     -----------
@@ -44,8 +47,9 @@ def classifier_output(ML_strategy, yhat, y, w, process, fileID):
     -----
             ML_strategy = one of the machine learning strategy in strategies/ whose prerformance we want to visualize
             yhat = the array of predictions
-            y = the target array
-            w = the array of weights
+            data = dictionary, containing 'y', 'w' for the set to evaluate performance on, where:
+                y = array of dim (# examples) with target values
+                w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
             fileID = arbitrary string that refers back to the input file, usually
     """
@@ -59,8 +63,8 @@ def classifier_output(ML_strategy, yhat, y, w, process, fileID):
     axes = plt.axes()
     bins = np.linspace(min(yhat), max(yhat), 50)
 
-    plt.hist(yhat[y == 1], weights=w[y == 1] / float(sum(w[y == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-    plt.hist(yhat[y == 0], weights=w[y == 0] / float(sum(w[y == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    plt.hist(yhat[data['y'] == 1], weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+    plt.hist(yhat[data['y'] == 0], weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
     plt.legend(loc="upper right")
     plt.xlabel("Classifier Output", position=(1., 0), va="bottom", ha="right")
