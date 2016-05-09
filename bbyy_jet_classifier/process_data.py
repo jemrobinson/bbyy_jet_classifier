@@ -55,17 +55,19 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     # -- Construct training and test datasets, automatically permuted
     X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
         train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
-    # train = dataset(X_train, y_train, w_train)
-    # test = dataset(X_test, y_test, w_test)
+
+    # -- Put X, y and w into a dictionary to conveniently pass these objects around
+    train_data = {'X' : X_train, 'y' : y_train, 'w' : w_train}
+    test_data = {'X' : X_test, 'y' : y_test, 'w' : w_test}
 
     # -- ANOVA for feature selection (please, know what you're doing)
-    feature_selection(X_train, y_train, classification_variables, 5)
+    feature_selection(train_data, classification_variables, 5)
 
     # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
-    return classification_variables, variable_dict, X_train, X_test, y_train, y_test, w_train, w_test, mHmatch_test, pThigh_test
+    return classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test
 
 
-def feature_selection(X_train, y_train, features, k):
+def feature_selection(train_data, features, k):
     """
     Definition:
     -----------
@@ -74,15 +76,14 @@ def feature_selection(X_train, y_train, features, k):
 
     Args:
     -----
-            X_train = matrix X of dimensions (n_train_events, n_features) for training
-            y_train = array of truth labels {0, 1} of dimensions (n_train_events) for training
+            train_data = dictionary containing keys 'X' and 'y', corresponding to the feature matrix and target array for the training set
             features = names of features used for training in the order in which they were inserted into X
             k = int, the function will print the top k features in order of importance
     """
 
     # -- Select the k top features, as ranked using ANOVA F-score
     tf = SelectKBest(score_func=f_classif, k=k)
-    Xt = tf.fit_transform(X_train, y_train)
+    Xt = tf.fit_transform(train_data['X'], train_data['y'])
 
     # -- Return names of top features
     logging.getLogger("RunClassifier").info("The {} most important features are {}".format(k, [f for (_, f) in sorted(zip(tf.scores_, features), reverse=True)][:k]))

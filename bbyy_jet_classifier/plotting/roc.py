@@ -9,7 +9,7 @@ import rootpy.plotting as rpp
 from viz import add_curve, calculate_roc, ROC_plotter
 import plot_atlas
 
-def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, y_test, w_test):
+def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data):
     """
     Definition:
     -----------
@@ -28,10 +28,10 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     logging.getLogger("Plotting").info("Plotting performance")
 
     # -- Calculate efficiencies from the older strategies
-    eff_mH_signal = float(sum((mHmatch_test * w_test)[y_test == 1])) / float(sum(w_test[y_test == 1]))
-    eff_mH_bkg = float(sum((mHmatch_test * w_test)[y_test == 0])) / float(sum(w_test[y_test == 0]))
-    eff_pT_signal = float(sum((pThigh_test * w_test)[y_test == 1])) / float(sum(w_test[y_test == 1]))
-    eff_pT_bkg = float(sum((pThigh_test * w_test)[y_test == 0])) / float(sum(w_test[y_test == 0]))
+    eff_mH_signal = float(sum((mHmatch_test * test_data['w'])[test_data['y'] == 1])) / float(sum(test_data['w'][test_data['y']== 1]))
+    eff_mH_bkg = float(sum((mHmatch_test * test_data['w'])[test_data['y'] == 0])) / float(sum(test_data['w'][test_data['y']== 0]))
+    eff_pT_signal = float(sum((pThigh_test * test_data['w'])[test_data['y'] == 1])) / float(sum(test_data['w'][test_data['y']== 1]))
+    eff_pT_bkg = float(sum((pThigh_test * test_data['w'])[test_data['y'] == 0])) / float(sum(test_data['w'][test_data['y']== 0]))
 
     ML_strategy.ensure_directory(os.path.join(ML_strategy.output_directory, "pickle"))
     cPickle.dump(
@@ -43,7 +43,7 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
 
     # -- Add ROC curves and efficiency points for old strategies
     discs = {}
-    add_curve(ML_strategy.name, "black", calculate_roc(y_test, yhat_test), discs)
+    add_curve(ML_strategy.name, "black", calculate_roc(test_data['y'], yhat_test, weights=test_data['w']), discs)
     fg = ROC_plotter(discs, min_eff=0.1, max_eff=1.0, logscale=True)
     plt.plot(eff_mH_signal, 1.0 / eff_mH_bkg, marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy

@@ -13,8 +13,8 @@ class BaseStrategy(object):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    def train(self, X_train, y_train, w_train, classification_variables, variable_dict):
+    def train(self, train_data, classification_variables, variable_dict):
         raise NotImplementedError("Must be implemented by child class!")
 
-    def test(self, X_test, y_test, w_test, classification_variables, process):
+    def test(self, data, classification_variables, process):
         raise NotImplementedError("Must be implemented by child class!")
