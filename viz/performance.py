@@ -112,22 +112,23 @@ def ROC_plotter(curves, min_eff=0, max_eff=1, min_rej=1, max_rej=10**4, pp=False
     plt.legend()
     plt.xlim(min_eff, max_eff)
     plt.ylim(min_rej, max_rej)
-    axes.set_xlabel(r"$\varepsilon_{\mathrm{signal}}$")
-    axes.set_ylabel(r"$1 / \varepsilon_{\mathrm{background}}$")
+    # axes.set_xlabel(r"$\varepsilon_{\mathrm{signal}}$")
+    # axes.set_ylabel(r"$1 / \varepsilon_{\mathrm{background}}$")
+    plt.xlabel(r"$\varepsilon_{\mathsf{signal}}$")  # , position=(1., 0), va="bottom", ha="right")
+    plt.ylabel(r"$1 / \varepsilon_{\mathsf{background}}$")  # , position=(0, 1.), va="top", ha="right")
 
     # -- Save figure or return it
     if pp:
         plt.savefig(figure)
     else:
-        return figure
+        return figure, axes
 
 
 def add_curve(name, color, curve_pair):
-    discriminant_dict = {
+    return {
         name: {
             "efficiency": curve_pair[0],
             "rejection": curve_pair[1],
             "color": color
         }
     }
-    return discriminant_dict

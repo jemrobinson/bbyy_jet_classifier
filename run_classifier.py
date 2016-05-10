@@ -67,8 +67,8 @@ if __name__ == "__main__":
 
             # -- Plot output testing distributions from classifier and old strategies
             plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
-            plot_outputs.old_strategy(ML_strategy.output_directory, mHmatch_test, test_data, "mHmatch")
-            plot_outputs.old_strategy(ML_strategy.output_directory, pThigh_test, test_data, "pThigh")
+            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, "mHmatch")
+            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, "pThigh")
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logging.getLogger("RunClassifier").info("Plotting ROC curves...")

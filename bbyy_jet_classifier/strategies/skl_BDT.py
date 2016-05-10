@@ -72,6 +72,7 @@ class sklBDT(BaseStrategy):
 
         # -- Log classification scores
         logging.getLogger("sklBDT.test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(data['X'], data['y'], sample_weight=data['w'])))
-        logging.getLogger("sklBDT.test").info(classification_report(data['y'], classifier.predict(data['X']), target_names=["correct", "incorrect"], sample_weight=data['w']))
+        for output_line in classification_report(data['y'], classifier.predict(data['X']), target_names=["correct", "incorrect"], sample_weight=data['w']).splitlines():
+            logging.getLogger("sklBDT.test").info(output_line)
 
         return yhat

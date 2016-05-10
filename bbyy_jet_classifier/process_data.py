@@ -81,7 +81,7 @@ def feature_selection(train_data, features, k):
     -----
             train_data = dictionary containing keys 'X' and 'y' for the training set, where:
                 X = ndarray of dim (# training examples, # features)
-                y = array of dim (# training examples) with target values 
+                y = array of dim (# training examples) with target values
             features = names of features used for training in the order in which they were inserted into X
             k = int, the function will print the top k features in order of importance
     """
