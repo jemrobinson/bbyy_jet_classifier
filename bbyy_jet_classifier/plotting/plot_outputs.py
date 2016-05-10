@@ -5,6 +5,7 @@ import numpy as np
 import plot_atlas
 import rootpy.plotting as rpp
 
+
 def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
     """
     Definition:
@@ -23,16 +24,16 @@ def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
     # -- Initialise figure and axes
     # rpp.set_style("ATLAS", mpl=True)
     # print 'get_style',rpp.get_style()
-    logging.getLogger("PlotOutputs").info("Plotting old strategy: {}".format(old_strategy_name) )
+    logging.getLogger("plotting.old_strategy").info("Plotting old strategy: {}".format(old_strategy_name))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
 
     # -- Plot data
     plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])),
-        bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+             bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
     plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])),
-        bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+             bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
     # -- Plot legend/axes/etc.
     plt.legend()
@@ -67,7 +68,7 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
     ML_strategy.ensure_directory("{}/{}/".format(ML_strategy.output_directory, process))
 
     # -- Initialise figure, axes and binning
-    logging.getLogger("PlotOutputs").info("Plotting classifier output")
+    logging.getLogger("plotting.classifier_output").info("Plotting classifier output")
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()

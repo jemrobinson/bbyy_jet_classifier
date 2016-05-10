@@ -3,7 +3,7 @@ import argparse
 import logging
 import os
 from bbyy_jet_classifier import strategies, process_data
-from bbyy_jet_classifier.plotting import plot_inputs, plot_outputs, roc
+from bbyy_jet_classifier.plotting import plot_inputs, plot_outputs, plot_roc
 
 if __name__ == "__main__":
     # -- Configure logging
@@ -21,55 +21,62 @@ if __name__ == "__main__":
     parser.add_argument("--incorrect_tree", metavar="NAME_OF_TREE", type=str, help="name of tree containing incorrectly identified pairs", default="incorrect")
     parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", help="list of variables to exclude", default=[])
     parser.add_argument("--ftrain", type=float, help="fraction of events to use for training", default=0.7)
-    parser.add_argument("--strategy", type=str, help="strategy to use. Options are: RootTMVA, sklBDT.", default="RootTMVA")
+    parser.add_argument("--strategy", nargs='+', help="strategy to use. Options are: RootTMVA, sklBDT.", default="RootTMVA")
     args = parser.parse_args()
 
     # -- Check that input file exists
     if not os.path.isfile(args.input):
         raise OSError("{} does not exist!".format(args.input))
 
-    # -- Construct dictionary of available strategies
-    if not args.strategy in strategies.__dict__.keys():
-        raise AttributeError("{} is not a valid strategy".format(args.strategy))
-    ML_strategy = getattr(strategies, args.strategy)(args.output)
-
     # -- Load in root files and return literally everything about the data
     classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test = \
         process_data.load(args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
 
-    # -- Training!
-    if args.ftrain > 0:
-        logging.getLogger("RunClassifier").info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
+    # -- Sequentially evaluate all the desired strategies on the same train/test sample
+    for strategy in args.strategy:
 
-        #-- Plot training distributions
-        plot_inputs.input_distributions(ML_strategy, classification_variables, train_data, process="training")  # plot the feature distributions
+        # -- Construct dictionary of available strategies
+        if not strategy in strategies.__dict__.keys():
+            raise AttributeError("{} is not a valid strategy".format(args.strategy))
+        ML_strategy = getattr(strategies, strategy)(args.output)
 
-        # -- Train classifier
-        ML_strategy.train(train_data, classification_variables, variable_dict)
+        # -- Training!
+        if args.ftrain > 0:
+            logging.getLogger("RunClassifier").info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
 
-        # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
-        yhat_train = ML_strategy.test(train_data, classification_variables, process="training")
-        plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
+            #-- Plot training distributions
+            plot_inputs.input_distributions(ML_strategy, classification_variables, train_data, process="training")  # plot the feature distributions
 
-    else:
-        logging.getLogger("RunClassifier").info("Preparing to use 100% of sample as testing input")
+            # -- Train classifier
+            ML_strategy.train(train_data, classification_variables, variable_dict)
 
-    # -- Testing!
-    if args.ftrain < 1:
-        #-- Plot input testing distributions
-        plot_inputs.input_distributions(ML_strategy, classification_variables, test_data, process="testing")
-        
-        # -- TEST
-        yhat_test = ML_strategy.test(test_data, classification_variables, process="testing")
+            # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
+            yhat_train = ML_strategy.test(train_data, classification_variables, process="training")
+            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
 
-        # -- Plot output testing distributions from classifier and old strategies
-        plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
-        plot_outputs.old_strategy(ML_strategy.output_directory, mHmatch_test, test_data, "mHmatch")
-        plot_outputs.old_strategy(ML_strategy.output_directory, pThigh_test, test_data, "pThigh")
+        else:
+            logging.getLogger("RunClassifier").info("Preparing to use 100% of sample as testing input")
 
-        # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
-        logging.getLogger("RunClassifier").info("Plotting ROC curves...")
-        roc.signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data)
+        # -- Testing!
+        if args.ftrain < 1:
+            #-- Plot input testing distributions
+            plot_inputs.input_distributions(ML_strategy, classification_variables, test_data, process="testing")
 
-    else:
-        logging.getLogger("RunClassifier").info("100% of the sample was used for training -- no independent testing can be performed.")
+            # -- TEST
+            yhat_test = ML_strategy.test(test_data, classification_variables, process="testing")
+
+            # -- Plot output testing distributions from classifier and old strategies
+            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
+            plot_outputs.old_strategy(ML_strategy.output_directory, mHmatch_test, test_data, "mHmatch")
+            plot_outputs.old_strategy(ML_strategy.output_directory, pThigh_test, test_data, "pThigh")
+
+            # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
+            logging.getLogger("RunClassifier").info("Plotting ROC curves...")
+            plot_roc.signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data)
+
+        else:
+            logging.getLogger("RunClassifier").info("100% of the sample was used for training -- no independent testing can be performed.")
+
+    # -- if there is more than one strategy, plot the ROC comparison
+    if len(args.strategy) > 1:
+        plot_roc.roc_comparison()

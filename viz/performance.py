@@ -16,6 +16,7 @@ Usage:
 
 import numpy as np
 import matplotlib.pyplot as plt
+import rootpy.plotting as rpp
 from sklearn.metrics import roc_curve
 
 
@@ -37,7 +38,6 @@ def get_weights(target, actual, bins=10, cap=10, match=True):
 
     Returns:
         numpy.array: returns array of shape len(actual).
-
     """
     target_counts, target_bins = np.histogram(target, bins=bins)
     counts, _ = np.histogram(actual, bins=target_bins)
@@ -69,55 +69,65 @@ def calculate_roc(labels, discriminant, weights=None):
     Returns:
     --------
         tuple: (signal_efficiency, background_rejection) where each are arrays
-
     """
     fpr, tpr, _ = roc_curve(labels, discriminant, sample_weight=weights)
-    fpr, tpr = zip( *[ (_f,_t) for _f,_t in zip(fpr, tpr) if _f != 0 ] ) # remove zeros
-    sig_eff = tpr
-    bkg_rej = np.reciprocal(fpr)
+    sig_eff = tpr[np.nonzero(fpr)]  # values of tpr where fpr != 0
+    bkg_rej = np.reciprocal(fpr[np.nonzero(fpr)])  # values of fpr where fpr != 0
     return sig_eff, bkg_rej
 
 
-def ROC_plotter(curves, min_eff=0, max_eff=1, linewidth=1.4, pp=False, signal="",
-                background="", title="", logscale=True, ymax=10**4, ymin=1):
+def ROC_plotter(curves, min_eff=0, max_eff=1, min_rej=1, max_rej=10**4, pp=False, **kwargs):
+    """
+    Definition:
+    -----------
+        Plot pre-calculated ROC distributions
 
-    fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
-    ax = fig.add_subplot(111)
-    plt.xlim(min_eff, max_eff)
-    plt.grid(b=True, which="minor")
-    plt.grid(b=True, which="major")
-    max_ = 0
+    Args:
+    -----
+        curves = a dictionary of names -> ROC distributions
+        min_eff = minimum signal efficiency
+        max_eff = maximum signal efficiency
+        min_rej = minimum background rejection
+        max_rej = maximum background rejection
+        pp = boolean switch to determine whether to save output (true) or return the figure (false)
+        kwargs = additional keywords arguments for plotting (eg. linestyle, linewidth etc.)
+
+    Returns:
+    --------
+        figure: a matplotlib figure
+    """
+    # -- Initialise figure, axes and binning
+    figure = plt.figure(figsize=(6, 6), dpi=100)
+    axes = plt.axes()
+    plt.title(r"" + kwargs.pop("title", ""))
+    if kwargs.pop("logscale", False):
+        axes.set_yscale("log")
+
+    # -- Plot data
     for tagger, data in curves.iteritems():
         sel = (data["efficiency"] >= min_eff) & (data["efficiency"] <= max_eff)
-        if np.max(data["rejection"][sel]) > max_:
-            max_ = np.max(data["rejection"][sel])
-        plt.plot(data["efficiency"][sel], data["rejection"][sel], "-", label=r"" + tagger, color=data["color"], linewidth=linewidth)
+        plt.plot(data["efficiency"][sel], data["rejection"][sel], "-", label=r"" + tagger, color=data["color"], **kwargs)
 
-    ax = plt.subplot(1, 1, 1)
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(20)
-    plt.ylim(ymin, ymax)
-    if logscale:
-        ax.set_yscale("log")
-
-    ax.set_xlabel(r"$\varepsilon_{\mathrm{signal}}$")
-    ax.set_ylabel(r"$1 / \varepsilon_{\mathrm{background}}$")
-
+    # -- Plot legend/axes/etc.
     plt.legend()
-    plt.title(r"" + title)
+    plt.xlim(min_eff, max_eff)
+    plt.ylim(min_rej, max_rej)
+    axes.set_xlabel(r"$\varepsilon_{\mathrm{signal}}$")
+    axes.set_ylabel(r"$1 / \varepsilon_{\mathrm{background}}$")
+
+    # -- Save figure or return it
     if pp:
-        plt.savefig(fig)
+        plt.savefig(figure)
     else:
-        return fig
+        return figure
 
 
-def add_curve(name, color, curve_pair, dictref):
-    dictref.update(
-        {
-            name: {
-                "efficiency": curve_pair[0],
-                "rejection": curve_pair[1],
-                "color": color
-            }
+def add_curve(name, color, curve_pair):
+    discriminant_dict = {
+        name: {
+            "efficiency": curve_pair[0],
+            "rejection": curve_pair[1],
+            "color": color
         }
-    )
+    }
+    return discriminant_dict

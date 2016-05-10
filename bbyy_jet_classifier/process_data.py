@@ -7,6 +7,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"<i4": "I", "<f8": "D", "<f4": "F"}
 
+
 def load(input_filename, correct_treename, incorrect_treename, excluded_variables, training_fraction):
     """
     Definition:
@@ -59,8 +60,8 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
         train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
 
     # -- Put X, y and w into a dictionary to conveniently pass these objects around
-    train_data = {'X' : X_train, 'y' : y_train, 'w' : w_train}
-    test_data = {'X' : X_test, 'y' : y_test, 'w' : w_test}
+    train_data = {'X': X_train, 'y': y_train, 'w': w_train}
+    test_data = {'X': X_test, 'y': y_test, 'w': w_test}
 
     # -- ANOVA for feature selection (please, know what you're doing)
     feature_selection(train_data, classification_variables, 5)

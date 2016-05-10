@@ -1,11 +1,9 @@
 import os
 import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
-# import rootpy.plotting as rpp
-
 import plot_atlas
+
 
 def input_distributions(strategy, classification_variables, data, process):
     """
@@ -24,7 +22,7 @@ def input_distributions(strategy, classification_variables, data, process):
     """
     # rpp.set_style("ATLAS", mpl=True)
     # print 'get_style',rpp.get_style()
-    logging.getLogger("Plotting").info("Plotting input distributions")
+    logging.getLogger("plotting.input_distributions").info("Plotting input distributions")
     plot_atlas.set_style()
 
     # -- Ensure output directory exists
