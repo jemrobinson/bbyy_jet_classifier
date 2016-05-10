@@ -72,6 +72,7 @@ def calculate_roc(labels, discriminant, weights=None):
 
     """
     fpr, tpr, _ = roc_curve(labels, discriminant, sample_weight=weights)
+    fpr, tpr = zip( *[ (_f,_t) for _f,_t in zip(fpr, tpr) if _f != 0 ] ) # remove zeros
     sig_eff = tpr
     bkg_rej = np.reciprocal(fpr)
     return sig_eff, bkg_rej

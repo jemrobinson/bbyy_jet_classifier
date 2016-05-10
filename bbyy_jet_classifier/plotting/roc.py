@@ -25,8 +25,10 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
                 y = array of dim (# testing examples) with target values
                 w = array of dim (# testing examples) with event weights
     """
-    rpp.set_style("ATLAS", mpl=True)
+    # rpp.set_style("ATLAS", mpl=True)
+    # print 'get_style',rpp.get_style()
     logging.getLogger("Plotting").info("Plotting performance")
+    plot_atlas.set_style()
 
     # -- Calculate efficiencies from the older strategies
     eff_mH_signal = float(sum((mHmatch_test * test_data['w'])[test_data['y'] == 1])) / float(sum(test_data['w'][test_data['y']== 1]))
@@ -50,8 +52,8 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     axes = plt.axes()
-    plot_atlas.atlaslabel(axes)
+    plot_atlas.atlas_label(axes)
     fg.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
+
     # -- Save out ROC curve as pickle for later comparison
     cPickle.dump(discs[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
-

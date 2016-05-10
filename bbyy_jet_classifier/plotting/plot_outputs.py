@@ -1,11 +1,9 @@
 import os
 import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
-import rootpy.plotting as rpp
-
 import plot_atlas
+import rootpy.plotting as rpp
 
 def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
     """
@@ -22,18 +20,27 @@ def old_strategy(outdir, yhat_test, test_data, old_strategy_name):
                 w = array of dim (# testing examples) with event weights
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
     """
-    logging.getLogger("Plotting").info("Plotting old strategy")
+    # -- Initialise figure and axes
+    # rpp.set_style("ATLAS", mpl=True)
+    # print 'get_style',rpp.get_style()
+    logging.getLogger("PlotOutputs").info("Plotting old strategy: {}".format(old_strategy_name) )
+    plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
-    #ax = figure.add_subplot(111)
-    plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])), 
+    axes = plt.axes()
+
+    # -- Plot data
+    plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])),
         bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-    plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])), 
+    plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])),
         bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+
+    # -- Plot legend/axes/etc.
     plt.legend()
     plt.xlabel("{} output".format(old_strategy_name))
     plt.ylabel("Fraction of events")
-    axes = plt.axes()
-    plot_atlas.atlaslabel(axes, fontsize=10)
+
+    # -- Write figure and close plot to save memory
+    plot_atlas.atlas_label(axes, fontsize=10)
     figure.savefig(os.path.join(outdir, "testing", "{}.pdf".format(old_strategy_name)))
 
 
@@ -53,24 +60,31 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
             process = string, either "training" or "testing", usually
             fileID = arbitrary string that refers back to the input file, usually
     """
-    rpp.set_style("ATLAS", mpl=True)
-    logging.getLogger("Plotting").info("Plotting classifier output")
+    # rpp.set_style("ATLAS", mpl=True)
+    # print 'get_style',rpp.get_style()
 
     # -- Ensure output directory exists
     ML_strategy.ensure_directory("{}/{}/".format(ML_strategy.output_directory, process))
 
+    # -- Initialise figure, axes and binning
+    logging.getLogger("PlotOutputs").info("Plotting classifier output")
+    plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
     bins = np.linspace(min(yhat), max(yhat), 50)
 
+    # -- Plot data
     plt.hist(yhat[data['y'] == 1], weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
     plt.hist(yhat[data['y'] == 0], weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
+    # -- Plot legend/axes/etc.
     plt.legend(loc="upper right")
     plt.xlabel("Classifier Output", position=(1., 0), va="bottom", ha="right")
     plt.ylabel("Fraction of Events", position=(0, 1.), va="top", ha="right")
     axes.xaxis.set_label_coords(1., -0.15)
     axes.yaxis.set_label_coords(-0.18, 1.)
-    plot_atlas.atlaslabel(axes, fontsize=10)
+    plot_atlas.atlas_label(axes, fontsize=10)
+
+    # -- Write figure and close plot to save memory
     figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(fileID)))
     plt.close(figure)
