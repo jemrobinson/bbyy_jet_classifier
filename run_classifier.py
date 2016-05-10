@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # -- Parse arguments
     parser = argparse.ArgumentParser(description="Run ML algorithms over ROOT TTree input")
     parser.add_argument("--input", type=str, help="input file name", required=True)
-    parser.add_argument("--output", type=str, help="output directory", default=None)
+    parser.add_argument("--output", type=str, help="output directory", default="output")
     parser.add_argument("--correct_tree", metavar="NAME_OF_TREE", type=str, help="name of tree containing correctly identified pairs", default="correct")
     parser.add_argument("--incorrect_tree", metavar="NAME_OF_TREE", type=str, help="name of tree containing incorrectly identified pairs", default="incorrect")
     parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", help="list of variables to exclude", default=[])
@@ -32,20 +32,21 @@ if __name__ == "__main__":
     classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test = \
         process_data.load(args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
 
+    #-- Plot input distributions
+    strategies.BaseStrategy.ensure_directory(args.output + "/classification_variables")
+    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=args.output + "/classification_variables")
+
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
-    for strategy in args.strategy:
+    for strategy_name in args.strategy:
 
         # -- Construct dictionary of available strategies
-        if not strategy in strategies.__dict__.keys():
+        if not strategy_name in strategies.__dict__.keys():
             raise AttributeError("{} is not a valid strategy".format(args.strategy))
-        ML_strategy = getattr(strategies, strategy)(args.output)
+        ML_strategy = getattr(strategies, strategy_name)(args.output)
 
         # -- Training!
         if args.ftrain > 0:
             logging.getLogger("RunClassifier").info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
-
-            #-- Plot training distributions
-            plot_inputs.input_distributions(ML_strategy, classification_variables, train_data, process="training")  # plot the feature distributions
 
             # -- Train classifier
             ML_strategy.train(train_data, classification_variables, variable_dict)
@@ -59,10 +60,7 @@ if __name__ == "__main__":
 
         # -- Testing!
         if args.ftrain < 1:
-            #-- Plot input testing distributions
-            plot_inputs.input_distributions(ML_strategy, classification_variables, test_data, process="testing")
-
-            # -- TEST
+            # -- Test classifier
             yhat_test = ML_strategy.test(test_data, classification_variables, process="testing")
 
             # -- Plot output testing distributions from classifier and old strategies

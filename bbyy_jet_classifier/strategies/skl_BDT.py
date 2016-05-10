@@ -11,7 +11,7 @@ class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_location = os.path.join("output", "sklBDT")
+    default_output_subdir = "sklBDT"  # os.path.join("output", "sklBDT")
 
     def train(self, train_data, classification_variables, variable_dict):
         """

@@ -6,10 +6,11 @@ class BaseStrategy(object):
 
     def __init__(self, output_directory):
         self.name = self.__module__.split(".")[-1].replace("_", " ")
-        self.output_directory = output_directory if output_directory is not None else self.default_output_location
+        self.output_directory = os.path.join(output_directory, self.default_output_subdir)  # output_directory if output_directory is not None else self.default_output_location
         self.ensure_directory(self.output_directory)
 
-    def ensure_directory(self, directory):
+    @staticmethod
+    def ensure_directory(directory):
         if not os.path.exists(directory):
             os.makedirs(directory)
 

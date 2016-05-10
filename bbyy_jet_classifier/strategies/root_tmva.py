@@ -11,7 +11,7 @@ class RootTMVA(BaseStrategy):
     """
     Strategy using a BDT from ROOT TMVA
     """
-    default_output_location = os.path.join("output", "RootTMVA")
+    default_output_subdir = "RootTMVA"  # os.path.join("output", "RootTMVA")
 
     def train(self, train_data, classification_variables, variable_dict):
         """
