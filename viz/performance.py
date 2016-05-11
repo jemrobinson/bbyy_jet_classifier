@@ -109,6 +109,7 @@ def ROC_plotter(curves, min_eff=0, max_eff=1, min_rej=1, max_rej=10**4, pp=False
         plt.plot(data["efficiency"][sel], data["rejection"][sel], "-", label=r"" + tagger, color=data["color"], **kwargs)
 
     # -- Plot legend/axes/etc.
+    plt.grid(b=True, which="both", alpha=0.5)
     plt.legend()
     plt.xlim(min_eff, max_eff)
     plt.ylim(min_rej, max_rej)
@@ -121,7 +122,7 @@ def ROC_plotter(curves, min_eff=0, max_eff=1, min_rej=1, max_rej=10**4, pp=False
     if pp:
         plt.savefig(figure)
     else:
-        return figure, axes
+        return figure
 
 
 def add_curve(name, color, curve_pair):

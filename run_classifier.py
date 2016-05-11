@@ -33,8 +33,8 @@ if __name__ == "__main__":
         process_data.load(args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
 
     #-- Plot input distributions
-    strategies.BaseStrategy.ensure_directory(args.output + "/classification_variables")
-    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=args.output + "/classification_variables")
+    strategies.BaseStrategy.ensure_directory(os.path.join(args.output, "classification_variables"))
+    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=os.path.join(args.output, "classification_variables"))
 
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
     for strategy_name in args.strategy:
