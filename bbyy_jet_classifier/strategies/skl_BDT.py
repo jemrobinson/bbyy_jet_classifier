@@ -34,9 +34,6 @@ class sklBDT(BaseStrategy):
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle
-        self.ensure_directory("{}/pickle/".format(self.output_directory))
-        joblib.dump(classifier, "{}/pickle/sklBDT_clf.pkl".format(self.output_directory), protocol=cPickle.HIGHEST_PROTOCOL)
-
         self.ensure_directory(os.path.join(self.output_directory, "pickle"))
         joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
@@ -62,8 +59,8 @@ class sklBDT(BaseStrategy):
         logging.getLogger("sklBDT.test").info("Evaluating performance...")
 
         # -- Load scikit classifier
-        classifier = joblib.load("{}/pickle/sklBDT_clf.pkl".format(self.output_directory))
-
+        classifier = joblib.load(os.path.join(self.output_directory, 'pickle', 'sklBDT_clf.pkl'))
+        
         # -- Get classifier predictions
         yhat = classifier.predict_proba(data['X'])[:, 1]
 
