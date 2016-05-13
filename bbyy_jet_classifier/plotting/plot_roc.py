@@ -53,15 +53,15 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     cPickle.dump(discrim_dict[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
 
 
-def roc_comparison():
+def roc_comparison(fileID):
     """
     Definition:
     ------------
         Quick script to load and compare ROC curves produced from different classifiers
     """
-    TMVABDT = cPickle.load(open(os.path.join("output", "RootTMVA", "pickle", "root_tmva_ROC.pkl"), "rb"))
-    sklBDT = cPickle.load(open(os.path.join("output", "sklBDT", "pickle", "skl_BDT_ROC.pkl"), "rb"))
-    dots = cPickle.load(open(os.path.join("output", "sklBDT", "pickle", "old_strategies_dict.pkl"), "rb"))
+    TMVABDT = cPickle.load(open(os.path.join(fileID, "RootTMVA", "pickle", "root_tmva_ROC.pkl"), "rb"))
+    sklBDT = cPickle.load(open(os.path.join(fileID, "sklBDT", "pickle", "skl_BDT_ROC.pkl"), "rb"))
+    dots = cPickle.load(open(os.path.join(fileID, "sklBDT", "pickle", "old_strategies_dict.pkl"), "rb"))
 
     sklBDT["color"] = "green"
     curves = {"sklBDT": sklBDT, "RootTMVA": TMVABDT}
@@ -74,4 +74,4 @@ def roc_comparison():
     plt.plot(dots["eff_pT_signal"], 1.0 / dots["eff_pT_bkg"], marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
-    figure.savefig(os.path.join("output", "ROCcomparison.pdf"))
+    figure.savefig(os.path.join(fileID, "ROCcomparison.pdf"))

@@ -37,7 +37,7 @@ class sklBDT(BaseStrategy):
         self.ensure_directory(os.path.join(self.output_directory, "pickle"))
         joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
-    def test(self, data, classification_variables, process):
+    def test(self, data, classification_variables, process, train_location):
         """
         Definition:
         -----------
@@ -51,6 +51,7 @@ class sklBDT(BaseStrategy):
                 w = array of dim (# examples) with event weights
             process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
+            train_location = string that specifies the fileID of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh') 
 
         Returns:
         --------
@@ -59,13 +60,10 @@ class sklBDT(BaseStrategy):
         logging.getLogger("sklBDT.test").info("Evaluating performance...")
 
         # -- Load scikit classifier
-        classifier = joblib.load(os.path.join(self.output_directory, 'pickle', 'sklBDT_clf.pkl'))
+        classifier = joblib.load(os.path.join(train_location, self.default_output_subdir, 'pickle', 'sklBDT_clf.pkl'))
         
         # -- Get classifier predictions
         yhat = classifier.predict_proba(data['X'])[:, 1]
-
-        # -- Load scikit classifier
-        classifier = joblib.load(os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"))
 
         # -- Log classification scores
         logging.getLogger("sklBDT.test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(data['X'], data['y'], sample_weight=data['w'])))
