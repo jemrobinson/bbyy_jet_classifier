@@ -64,7 +64,7 @@ def input_distributions(classification_variables, training_data, test_data, dire
             _contents, _ = np.histogram(X_train_incorrect, bins=bins, weights=training_data['w'][training_data['y'] == 0] / float(sum(training_data['w'][training_data['y'] == 0])))
             plt.scatter(bin_centres[np.nonzero(_contents)], _contents[np.nonzero(_contents)], label="Incorrect (train)", color="red")
 
-        except IndexError:
+        except (IndexError, ValueError):
             non_empty = training_data if len(training_data['y']) > 0 else test_data
             bins = np.linspace(min(non_empty['X'][:, i]), max(non_empty['X'][:, i]), 50)
             y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, 

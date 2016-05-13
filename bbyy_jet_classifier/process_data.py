@@ -75,7 +75,8 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     test_data = {'X': X_test, 'y': y_test, 'w': w_test}
 
     # -- ANOVA for feature selection (please, know what you're doing)
-    feature_selection(train_data, classification_variables, 5)
+    if training_fraction > 0:
+        feature_selection(train_data, classification_variables, 5)
 
     # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
     return classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test

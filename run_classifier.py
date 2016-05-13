@@ -27,6 +27,7 @@ if __name__ == "__main__":
     # -- Check that input file exists
     if not os.path.isfile(args.input):
         raise OSError("{} does not exist!".format(args.input))
+    fileID = args.input.replace(".root", "").split("/")[-1]
 
     # -- Load in root files and return literally everything about the data
     classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test = \
@@ -53,7 +54,7 @@ if __name__ == "__main__":
 
             # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
             yhat_train = ML_strategy.test(train_data, classification_variables, process="training")
-            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
+            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=fileID)
 
         else:
             logging.getLogger("RunClassifier").info("Preparing to use 100% of sample as testing input")
