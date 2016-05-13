@@ -40,13 +40,13 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     logging.getLogger("plotting.signal/bkg").info("Plotting signal efficiency and background rejection")
     plot_atlas.set_style()
     discrim_dict = add_curve(ML_strategy.name, "black", calculate_roc(test_data["y"], yhat_test, weights=test_data["w"]))
-    figure, axes = ROC_plotter(discrim_dict, min_eff=0.0, max_eff=1.0, min_rej=1, max_rej=10**4, logscale=True)
+    figure = ROC_plotter(discrim_dict, min_eff=0.0, max_eff=1.0, min_rej=1, max_rej=10**4, logscale=True)
 
     # -- Add ROC curves and efficiency points for old strategies
     plt.plot(eff_mH_signal, 1.0 / eff_mH_bkg, marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
-    plot_atlas.use_atlas_labels(axes)
+    plot_atlas.use_atlas_labels(plt.axes())
     figure.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
 
     # -- Save out ROC curve as pickle for later comparison
@@ -59,8 +59,8 @@ def roc_comparison():
     ------------
         Quick script to load and compare ROC curves produced from different classifiers
     """
-    TMVABDT = cPickle.load(open(os.path.join("output", "RootTMVA", "pickle", "RootTMVA_ROC.pkl"), "rb"))
-    sklBDT = cPickle.load(open(os.path.join("output", "sklBDT", "pickle", "sklBDT_ROC.pkl"), "rb"))
+    TMVABDT = cPickle.load(open(os.path.join("output", "RootTMVA", "pickle", "root_tmva_ROC.pkl"), "rb"))
+    sklBDT = cPickle.load(open(os.path.join("output", "sklBDT", "pickle", "skl_BDT_ROC.pkl"), "rb"))
     dots = cPickle.load(open(os.path.join("output", "sklBDT", "pickle", "old_strategies_dict.pkl"), "rb"))
 
     sklBDT["color"] = "green"
@@ -68,10 +68,10 @@ def roc_comparison():
 
     # -- Initialise figure and axes
     logging.getLogger("RunClassifier").info("Plotting")
-    figure, axes = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, ymax=1000, logscale=True)
+    figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
 
     plt.plot(dots["eff_mH_signal"], 1.0 / dots["eff_mH_bkg"], marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(dots["eff_pT_signal"], 1.0 / dots["eff_pT_bkg"], marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
-    plot_atlas.use_atlas_labels(axes)
+    plot_atlas.use_atlas_labels(plt.axes())
     figure.savefig(os.path.join("output", "ROCcomparison.pdf"))

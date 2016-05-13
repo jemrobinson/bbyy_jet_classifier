@@ -53,11 +53,22 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     y = np.concatenate((np.ones(correct_recarray_feats.shape[0]), np.zeros(incorrect_recarray_feats.shape[0])))
     w = np.concatenate((correct_recarray["event_weight"], incorrect_recarray["event_weight"]))
     mHmatch = np.concatenate((correct_recarray["idx_by_mH"] == 0, incorrect_recarray["idx_by_mH"] == 0))
-    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))
+    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))    
 
     # -- Construct training and test datasets, automatically permuted
-    X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
-        train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
+    if training_fraction == 1:
+        ix = range(len(y))
+        import random
+        random.shuffle(ix)
+        X_train, y_train, w_train = X[ix], y[ix], w[ix]
+        y_test = w_test = mHmatch_test = pThigh_test = np.array([])
+        X_test = np.array([[]])
+    else:
+        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
+            train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
+
+    # -- Balance training weights
+    w_train = balance_weights(y_train, w_train)
 
     # -- Put X, y and w into a dictionary to conveniently pass these objects around
     train_data = {'X': X_train, 'y': y_train, 'w': w_train}
@@ -92,3 +103,31 @@ def feature_selection(train_data, features, k):
 
     # -- Return names of top features
     logging.getLogger("RunClassifier").info("The {} most important features are {}".format(k, [f for (_, f) in sorted(zip(tf.scores_, features), reverse=True)][:k]))
+
+
+def balance_weights(y_train, w_train, targetN = 10000):
+    '''
+    Definition:
+    -----------
+        Function that rebalances the class weights
+        This is useful because we often train on datasets with very different quantities of signal and background
+        This allows us to bring the samples back to equal quantities of signal and background
+
+    Args:
+    -----
+        y_train = array of dim (# training examples) with target values
+        w_train = array of dim (# training examples) with the initial weights as extracted from the ntuple
+        targetN(optional, default to 10000) = target equal number of signal and background events
+
+    Returns:
+    --------
+        w_train = array of dim (# training examples) with the new rescaled weights
+    '''
+
+    for classID in np.unique(y_train):
+        w_train[y_train == classID] *= float(targetN) / float(np.sum(w_train[y_train == classID]))
+
+    return w_train
+
+
+

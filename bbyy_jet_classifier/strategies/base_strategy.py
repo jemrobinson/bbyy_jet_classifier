@@ -5,8 +5,8 @@ class BaseStrategy(object):
     default_output_location = None
 
     def __init__(self, output_directory):
-        self.name = self.__module__.split(".")[-1].replace("_", " ")
-        self.output_directory = os.path.join(output_directory, self.default_output_subdir)  # output_directory if output_directory is not None else self.default_output_location
+        self.name = self.__module__.split(".")[-1] 
+        self.output_directory = os.path.join(output_directory, self.default_output_subdir)
         self.ensure_directory(self.output_directory)
 
     @staticmethod
