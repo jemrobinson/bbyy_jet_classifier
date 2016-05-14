@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import plot_atlas
 from viz import add_curve, calculate_roc, ROC_plotter
-
+from ..utils import ensure_directory
 
 def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data):
     """
@@ -28,7 +28,7 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     eff_pT_signal = float(sum((pThigh_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1]))
     eff_pT_bkg = float(sum((pThigh_test * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
 
-    ML_strategy.ensure_directory(os.path.join(ML_strategy.output_directory, "pickle"))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "pickle"))
     cPickle.dump({
         "eff_mH_signal": eff_mH_signal,
         "eff_mH_bkg": eff_mH_bkg,

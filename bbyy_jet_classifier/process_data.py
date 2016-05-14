@@ -25,7 +25,7 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     Returns:
     --------
             classification_variables = list of names of variables used for classification
-            variable_dict = ordered dict, mapping all the branches from the TTree to their type
+            variable2type = ordered dict, mapping all the branches from the TTree to their type
             train_data = dictionary, containing 'X', 'y', 'w' for the training set, where:
                 X = ndarray of dim (# training examples, # features)
                 y = array of dim (# training examples) with target values
@@ -42,8 +42,8 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
         logging.getLogger("process_data.load").info("... excluding variable {}".format(v_name))
     correct_recarray = root2rec(input_filename, correct_treename)
     incorrect_recarray = root2rec(input_filename, incorrect_treename)
-    variable_dict = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr if v_name not in excluded_variables))
-    classification_variables = [name for name in variable_dict.keys() if name not in ["event_weight"]]
+    variable2type = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr if v_name not in excluded_variables))
+    classification_variables = [name for name in variable2type.keys() if name not in ["event_weight"]]
 
     correct_recarray_feats = correct_recarray[classification_variables]
     incorrect_recarray_feats = incorrect_recarray[classification_variables]
@@ -78,8 +78,7 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     if training_fraction > 0:
         feature_selection(train_data, classification_variables, 5)
 
-    # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
-    return classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test
+    return classification_variables, variable2type, train_data, test_data, mHmatch_test, pThigh_test
 
 
 def feature_selection(train_data, features, k):

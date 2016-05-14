@@ -5,6 +5,7 @@ from . import BaseStrategy
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
+from ..utils import ensure_directory
 
 
 class sklBDT(BaseStrategy):
@@ -30,11 +31,11 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
+        classifier = GradientBoostingClassifier(n_estimators=10, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle
-        self.ensure_directory(os.path.join(self.output_directory, "pickle"))
+        ensure_directory(os.path.join(self.output_directory, "pickle"))
         joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
     def test(self, data, classification_variables, process, train_location):

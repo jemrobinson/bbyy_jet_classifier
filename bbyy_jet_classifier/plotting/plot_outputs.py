@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import plot_atlas
-
+from ..utils import ensure_directory
 
 def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     """
@@ -21,7 +21,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
     """
     # -- Ensure output directory exists
-    ML_strategy.ensure_directory("{}/{}/".format(ML_strategy.output_directory, "testing"))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "testing"))
 
     # -- Initialise figure and axes
     logging.getLogger("plotting.old_strategy").info("Plotting old strategy: {} for testing sample".format(old_strategy_name))
@@ -62,7 +62,7 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
             fileID = arbitrary string that refers back to the input file, usually
     """
     # -- Ensure output directory exists
-    ML_strategy.ensure_directory("{}/{}/".format(ML_strategy.output_directory, process))
+    ensure_directory(os.path.join(ML_strategy.output_directory, process))
 
     # -- Initialise figure, axes and binning
     logging.getLogger("plotting.classifier_output").info("Plotting classifier output for {} sample".format(process))

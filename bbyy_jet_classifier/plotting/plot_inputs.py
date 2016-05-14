@@ -1,4 +1,3 @@
-
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +44,7 @@ def input_distributions(classification_variables, training_data, test_data, dire
         # -- Initialise figure and axes
         figure = plt.figure(figsize=(6, 6), dpi=100)
         axes = plt.axes()
-        try:
+        try: # try to see if both training and testing data are available
             bins = np.linspace(min([min(training_data['X'][:, i]), min(test_data['X'][:, i])]), max([max(training_data['X'][:, i]), max(test_data['X'][:, i])]), 50)
             bin_centres = np.array([0.5 * (l + h) for l, h in zip(bins[:-1], bins[1:])])
 
