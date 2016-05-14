@@ -56,13 +56,10 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))    
 
     # -- Construct training and test datasets, automatically permuted
-    if training_fraction == 1:
-        ix = range(len(y))
-        import random
-        random.shuffle(ix)
-        X_train, y_train, w_train = X[ix], y[ix], w[ix]
-        y_test = w_test = mHmatch_test = pThigh_test = np.array([])
-        X_test = np.array([[]])
+    if training_fraction == 1: 
+        # -- Can't pass `train_size=1`, but can use `test_size=0`
+        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
+            train_test_split(X, y, w, mHmatch, pThigh, test_size=0)
     else:
         X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
             train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
