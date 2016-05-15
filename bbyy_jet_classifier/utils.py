@@ -1,9 +1,9 @@
-import os 
+import os
 import logging
 
 def ensure_directory(directory):
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def configure_logging():
     logging.basicConfig(format="%(levelname)-8s\033[1m%(name)-21s\033[0m: %(message)s")
