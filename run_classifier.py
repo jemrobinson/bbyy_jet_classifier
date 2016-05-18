@@ -27,6 +27,7 @@ if __name__ == "__main__":
     # -- Check that input file exists
     if not os.path.isfile(args.input):
         raise OSError("{} does not exist!".format(args.input))
+    sample_name = args.input.replace(".root", "").split("/")[-1]
 
     # -- Load in root files and return literally everything about the data
     classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test = \
@@ -53,7 +54,7 @@ if __name__ == "__main__":
 
             # -- Plot the classifier output as tested on the training set (only useful if you care to check the performance on the training set)
             yhat_train = ML_strategy.test(train_data, classification_variables, process="training")
-            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=args.input.replace(".root", "").split("/")[-1])
+            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 
         else:
             logging.getLogger("RunClassifier").info("Preparing to use 100% of sample as testing input")
@@ -64,9 +65,9 @@ if __name__ == "__main__":
             yhat_test = ML_strategy.test(test_data, classification_variables, process="testing")
 
             # -- Plot output testing distributions from classifier and old strategies
-            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=args.input.replace(".root", "").split("/")[-1])
-            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, "mHmatch")
-            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, "pThigh")
+            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, "mHmatch", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, "pThigh", sample_name=sample_name)
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logging.getLogger("RunClassifier").info("Plotting ROC curves...")
@@ -77,4 +78,4 @@ if __name__ == "__main__":
 
     # -- if there is more than one strategy, plot the ROC comparison
     if len(args.strategy) > 1:
-        plot_roc.roc_comparison()
+        plot_roc.roc_comparison(args.output, sample_name=sample_name)

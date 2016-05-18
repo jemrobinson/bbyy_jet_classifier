@@ -53,7 +53,7 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     y = np.concatenate((np.ones(correct_recarray_feats.shape[0]), np.zeros(incorrect_recarray_feats.shape[0])))
     w = np.concatenate((correct_recarray["event_weight"], incorrect_recarray["event_weight"]))
     mHmatch = np.concatenate((correct_recarray["idx_by_mH"] == 0, incorrect_recarray["idx_by_mH"] == 0))
-    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))    
+    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))
 
     # -- Construct training and test datasets, automatically permuted
     if training_fraction == 1:
@@ -74,8 +74,9 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     train_data = {'X': X_train, 'y': y_train, 'w': w_train}
     test_data = {'X': X_test, 'y': y_test, 'w': w_test}
 
-    # -- ANOVA for feature selection (please, know what you're doing)
-    feature_selection(train_data, classification_variables, 5)
+    if training_fraction > 0:
+        # -- ANOVA for feature selection (please, know what you're doing)
+        feature_selection(train_data, classification_variables, 5)
 
     # return classification_variables, variable_dict, train, test, mHmatch_test, pThigh_test
     return classification_variables, variable_dict, train_data, test_data, mHmatch_test, pThigh_test
@@ -128,6 +129,3 @@ def balance_weights(y_train, w_train, targetN = 10000):
         w_train[y_train == classID] *= float(targetN) / float(np.sum(w_train[y_train == classID]))
 
     return w_train
-
-
-

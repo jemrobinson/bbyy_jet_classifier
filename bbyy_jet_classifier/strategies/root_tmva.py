@@ -5,13 +5,12 @@ import shutil
 from . import BaseStrategy
 from ROOT import TCut, TFile, TMVA
 from root_numpy.tmva import add_classification_events, evaluate_reader
-
+from ..context_mgr import redirect_stdout
 
 class RootTMVA(BaseStrategy):
     """
     Strategy using a BDT from ROOT TMVA
     """
-    default_output_subdir = "RootTMVA"  # os.path.join("output", "RootTMVA")
 
     def train(self, train_data, classification_variables, variable_dict):
         """
@@ -35,8 +34,8 @@ class RootTMVA(BaseStrategy):
             factory.AddVariable(v_name, variable_dict[v_name])
 
         # Call root_numpy's utility functions to add events from the arrays
-        add_classification_events(factory, train_data['X'], train_data['y'], weights=train_data['w'])
-        add_classification_events(factory, train_data['X'][0:50], train_data['y'][0:50], weights=train_data['w'][0:50], test=True)  # need to add some testing events or TMVA will complain
+        add_classification_events(factory, train_data["X"], train_data["y"], weights=train_data["w"])
+        add_classification_events(factory, train_data["X"][0:50], train_data["y"][0:50], weights=train_data["w"][0:50], test=True)  # need to add some testing events or TMVA will complain
 
         # The following line is necessary if events have been added individually:
         factory.PrepareTrainingAndTestTree(TCut("1"), "NormMode=EqualNumEvents")

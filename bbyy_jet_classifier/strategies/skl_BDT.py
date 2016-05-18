@@ -11,7 +11,6 @@ class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_subdir = "sklBDT"  # os.path.join("output", "sklBDT")
 
     def train(self, train_data, classification_variables, variable_dict):
         """
@@ -60,7 +59,7 @@ class sklBDT(BaseStrategy):
 
         # -- Load scikit classifier
         classifier = joblib.load(os.path.join(self.output_directory, 'pickle', 'sklBDT_clf.pkl'))
-        
+
         # -- Get classifier predictions
         yhat = classifier.predict_proba(data['X'])[:, 1]
 

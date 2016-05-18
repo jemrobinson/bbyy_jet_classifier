@@ -2,11 +2,9 @@ import os
 
 
 class BaseStrategy(object):
-    default_output_location = None
-
     def __init__(self, output_directory):
-        self.name = self.__module__.split(".")[-1] 
-        self.output_directory = os.path.join(output_directory, self.default_output_subdir)
+        self.name = self.__class__.__name__ # set name to name of the derived class
+        self.output_directory = os.path.join(output_directory, self.name)
         self.ensure_directory(self.output_directory)
 
     @staticmethod

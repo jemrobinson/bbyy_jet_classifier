@@ -20,34 +20,32 @@ def set_style():
     mpl.rcParams["font.family"] = "sans-serif"
     mpl.rcParams["font.sans-serif"] = "Helvetica"
     mpl.rcParams["mathtext.fontset"] = "custom"
-    # mpl.rcParams["mathtext.default"] = "regular"
     mpl.rcParams["mathtext.default"] = "sf"
     mpl.rcParams["mathtext.rm"] = "serif"
     mpl.rcParams["mathtext.tt"] = "sans"
     mpl.rcParams["mathtext.it"] = "sans:italic"
     mpl.rcParams["mathtext.bf"] = "sans:bold"
+    mpl.rcParams["mathtext.fallback_to_cm"] = True
     set_style.func_code = (lambda: None).func_code
 
 
-def use_atlas_labels(ax, lumi=1.04):
+def use_atlas_labels(ax, lumi=None):
     """
     Definition:
     -----------
-            Set the plotting style to ATLAS-style and then point this function to
-            "None" so that it can only be called once
+            Add ATLAS labels to a plot
 
     Args:
     -----------
             ax = axes on which to draw the ATLAS text
-            fontsize = fontsize (default 18)
-            lumi = integrated luminosity
+            lumi = integrated luminosity (ignored if not provided)
     """
     # -- Add ATLAS text
     plt.text(0.03, 0.92, "ATLAS", va="bottom", ha="left", color="black", size=18,
              fontname="sans-serif", weight="bold", style="oblique", transform=ax.transAxes)
     plt.text(0.22, 0.92, "Internal", va="bottom", ha="left", color="black", size=18,
              fontname="sans-serif", transform=ax.transAxes)
-    plt.text(0.03, 0.83, r"$\sqrt{{s}} = 13\ TeV, {} fb^{{-1}}$".format(lumi), va="bottom",
+    plt.text(0.03, 0.83, r"$\sqrt{{s}} = 13\ TeV$"+[r"${} fb^{{-1}}$".format(lumi),""][lumi is None], va="bottom",
              ha="left", color="black", size=16, fontname="sans-serif", transform=ax.transAxes)
 
     # -- Force axis labels into correct position
