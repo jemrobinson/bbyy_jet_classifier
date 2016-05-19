@@ -34,8 +34,7 @@ if __name__ == "__main__":
         process_data.load(args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
 
     #-- Plot input distributions
-    strategies.BaseStrategy.ensure_directory(os.path.join(args.output, "classification_variables"))
-    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=os.path.join(args.output, "classification_variables"))
+    plot_inputs.input_distributions(classification_variables, train_data, test_data, output_directory=args.output, sample_name=sample_name)
 
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
     for strategy_name in args.strategy:
@@ -66,8 +65,8 @@ if __name__ == "__main__":
 
             # -- Plot output testing distributions from classifier and old strategies
             plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=sample_name)
-            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, "mHmatch", sample_name=sample_name)
-            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, "pThigh", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, old_strategy_name="mHmatch", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, old_strategy_name="pThigh", sample_name=sample_name)
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logging.getLogger("RunClassifier").info("Plotting ROC curves...")
@@ -78,4 +77,4 @@ if __name__ == "__main__":
 
     # -- if there is more than one strategy, plot the ROC comparison
     if len(args.strategy) > 1:
-        plot_roc.roc_comparison(args.output, sample_name=sample_name)
+        plot_roc.roc_comparison(output_directory=args.output, sample_name=sample_name)

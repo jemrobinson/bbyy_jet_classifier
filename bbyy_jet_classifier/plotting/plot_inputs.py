@@ -1,9 +1,9 @@
-
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import plot_atlas
+from bbyy_jet_classifier import strategies
 
 ROOT_2_LATEX = {
     "abs_eta_j": r"$|\eta_{j}|$",
@@ -21,7 +21,7 @@ ROOT_2_LATEX = {
     }
 
 
-def input_distributions(classification_variables, training_data, test_data, directory):
+def input_distributions(classification_variables, training_data, test_data, output_directory, sample_name):
     """
     Definition:
     -----------
@@ -83,5 +83,6 @@ def input_distributions(classification_variables, training_data, test_data, dire
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory
-        figure.savefig(os.path.join(directory, "{}.pdf".format(variable)))
+        strategies.BaseStrategy.ensure_directory(os.path.join(output_directory, "classification_variables"))
+        figure.savefig(os.path.join(output_directory, "classification_variables", "{}_{}.pdf".format(variable, sample_name)))
         plt.close(figure)
