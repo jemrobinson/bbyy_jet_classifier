@@ -2,8 +2,10 @@
 import argparse
 import logging
 import os
-from bbyy_jet_classifier import strategies, process_data, utils
+from bbyy_jet_classifier import strategies, process_data, utils, eventify
 from bbyy_jet_classifier.plotting import plot_inputs, plot_outputs, plot_roc
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def parse_args():
@@ -29,7 +31,7 @@ def parse_args():
                         help="directory with training info")
 
     parser.add_argument("--strategy", nargs='+',
-                        help="strategy to use. Options are: RootTMVA, sklBDT.", default=["RootTMVA"])
+                        help="strategy to use. Options are: RootTMVA, sklBDT.", default=["RootTMVA", "sklBDT"])
 
     args = parser.parse_args()
     return args
@@ -115,6 +117,18 @@ if __name__ == "__main__":
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logger.info("Plotting ROC curves")
             plot_roc.signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data)
+
+            # -- put it back into event
+            event_results = eventify.eventify(yhat_test, test_data)
+            import cPickle
+            cPickle.dump(event_results, open('results.pkl', 'wb'))
+            # mc_, event_, yhat_, y_ = np.array(event_results['mc']), np.array(event_results['event']), event_results['yhat_event'], event_results['y_event']
+
+            # fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
+            # for mc in np.unique(mc_):
+            #     _ = plt.hist([max(y) for y in yhat_[mc_ == mc]], label=str(mc), histtype='step', normed=True)
+            # plt.legend()
+            # fig.savefig('test.pdf')
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")

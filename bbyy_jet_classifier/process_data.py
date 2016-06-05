@@ -43,7 +43,7 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     correct_recarray = root2rec(input_filename, correct_treename)
     incorrect_recarray = root2rec(input_filename, incorrect_treename)
     variable2type = OrderedDict(((v_name, TYPE_2_CHAR[v_type]) for v_name, v_type in correct_recarray.dtype.descr if v_name not in excluded_variables))
-    classification_variables = [name for name in variable2type.keys() if name not in ["event_weight"]]
+    classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "eventNumber", "mcChannelNumber"]]
 
     correct_recarray_feats = correct_recarray[classification_variables]
     incorrect_recarray_feats = incorrect_recarray[classification_variables]
@@ -53,23 +53,25 @@ def load(input_filename, correct_treename, incorrect_treename, excluded_variable
     y = np.concatenate((np.ones(correct_recarray_feats.shape[0]), np.zeros(incorrect_recarray_feats.shape[0])))
     w = np.concatenate((correct_recarray["event_weight"], incorrect_recarray["event_weight"]))
     mHmatch = np.concatenate((correct_recarray["idx_by_mH"] == 0, incorrect_recarray["idx_by_mH"] == 0))
-    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))    
+    pThigh = np.concatenate((correct_recarray["idx_by_pT"] == 0, incorrect_recarray["idx_by_pT"] == 0))  
+    # -- event level reconstruction variables
+    event_info = rec2array(np.concatenate((correct_recarray[["eventNumber", "mcChannelNumber"]], incorrect_recarray[["eventNumber", "mcChannelNumber"]])))
 
     # -- Construct training and test datasets, automatically permuted
     if training_fraction == 1: 
         # -- Can't pass `train_size=1`, but can use `test_size=0`
-        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
-            train_test_split(X, y, w, mHmatch, pThigh, test_size=0)
+        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test, event_info_train, event_info_test = \
+            train_test_split(X, y, w, mHmatch, pThigh, event_info, test_size=0)
     else:
-        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test = \
-            train_test_split(X, y, w, mHmatch, pThigh, train_size=training_fraction)
+        X_train, X_test, y_train, y_test, w_train, w_test, _, mHmatch_test, _, pThigh_test, event_info_train, event_info_test = \
+            train_test_split(X, y, w, mHmatch, pThigh, event_info, train_size=training_fraction)
 
     # -- Balance training weights
     w_train = balance_weights(y_train, w_train)
 
     # -- Put X, y and w into a dictionary to conveniently pass these objects around
-    train_data = {'X': X_train, 'y': y_train, 'w': w_train}
-    test_data = {'X': X_test, 'y': y_test, 'w': w_test}
+    train_data = {'X': X_train, 'y': y_train, 'w': w_train, 'event_info': event_info_train}
+    test_data = {'X': X_test, 'y': y_test, 'w': w_test, 'event_info': event_info_test}
 
     # -- ANOVA for feature selection (please, know what you're doing)
     if training_fraction > 0:

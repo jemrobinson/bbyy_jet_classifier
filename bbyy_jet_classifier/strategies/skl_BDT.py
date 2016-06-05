@@ -31,7 +31,7 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=10, min_samples_split=2, max_depth=10, verbose=1)
+        classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle
