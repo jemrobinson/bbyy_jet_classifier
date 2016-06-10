@@ -15,11 +15,11 @@ def parse_args():
     parser.add_argument("--input", type=str,
                         help="input file name", required=True)
 
-    parser.add_argument("--correct_tree", metavar="NAME_OF_TREE", type=str,
-                        help="name of tree containing correctly identified pairs", default="correct")
+    # parser.add_argument("--correct_tree", metavar="NAME_OF_TREE", type=str,
+    #                     help="name of tree containing correctly identified pairs", default="correct")
 
-    parser.add_argument("--incorrect_tree", metavar="NAME_OF_TREE", type=str,
-                        help="name of tree containing incorrectly identified pairs", default="incorrect")
+    # parser.add_argument("--incorrect_tree", metavar="NAME_OF_TREE", type=str,
+    #                     help="name of tree containing incorrectly identified pairs", default="incorrect")
 
     parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", 
                         help="list of variables to exclude", default=[])
@@ -74,8 +74,8 @@ if __name__ == "__main__":
     train_location = args.train_location if args.train_location is not None else fileID
 
     # -- Load in root files and return literally everything about the data
-    classification_variables, variable2type, train_data, test_data, mHmatch_test, pThigh_test = process_data.load(
-        args.input, args.correct_tree, args.incorrect_tree, args.exclude, args.ftrain)
+    classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, shape = process_data.load(
+        args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
     utils.ensure_directory(os.path.join(fileID, "classification_variables"))
@@ -111,24 +111,23 @@ if __name__ == "__main__":
 
             # -- Plot output testing distributions from classifier and old strategies
             plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=fileID)
-            plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, "mHmatch")
-            plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, "pThigh")
+            plot_outputs.old_strategy(ML_strategy, yhat_mHmatch_test, test_data, "mHmatch")
+            plot_outputs.old_strategy(ML_strategy, yhat_pThigh_test, test_data, "pThigh")
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logger.info("Plotting ROC curves")
-            plot_roc.signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data)
+            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test, yhat_pThigh_test, yhat_test, test_data)
 
-            # -- put it back into event
-            event_results = eventify.eventify(yhat_test, test_data)
-            import cPickle
-            cPickle.dump(event_results, open('results.pkl', 'wb'))
-            # mc_, event_, yhat_, y_ = np.array(event_results['mc']), np.array(event_results['event']), event_results['yhat_event'], event_results['y_event']
+            # # -- put it back into event
+            # yhat_test_ev = process_data.match_shape(yhat_test, shape)
+            # yhat_mHmatch_test_ev = process_data.match_shape(yhat_mHmatch_test, shape)
+            # yhat_pThigh_test_ev = process_data.match_shape(yhat_pThigh_test, shape)
+            # import cPickle
+            # cPickle.dump(yhat_test_ev, open('yhat.pkl', 'wb'))
+            # cPickle.dump(shape, open('isCorrect.pkl', 'wb'))
+            # cPickle.dump(yhat_mHmatch_test_ev, open('mHmatch.pkl', 'wb'))
+            # cPickle.dump(yhat_pThigh_test_ev, open('pThigh.pkl', 'wb'))
 
-            # fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
-            # for mc in np.unique(mc_):
-            #     _ = plt.hist([max(y) for y in yhat_[mc_ == mc]], label=str(mc), histtype='step', normed=True)
-            # plt.legend()
-            # fig.savefig('test.pdf')
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")
