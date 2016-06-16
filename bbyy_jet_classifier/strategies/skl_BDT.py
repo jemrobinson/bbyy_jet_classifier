@@ -5,6 +5,7 @@ from . import BaseStrategy
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
+from sklearn.grid_search import GridSearchCV
 from ..utils import ensure_directory
 
 
@@ -30,8 +31,8 @@ class sklBDT(BaseStrategy):
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
         """
         # -- Train:
-        logging.getLogger("sklBDT.train").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
+        logging.getLogger("sklBDT.train").info("Training...")        
+        classifier = GradientBoostingClassifier(n_estimators=100, min_samples_split=2, max_depth=6, verbose=1)
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle

@@ -74,7 +74,7 @@ if __name__ == "__main__":
     train_location = args.train_location if args.train_location is not None else fileID
 
     # -- Load in root files and return literally everything about the data
-    classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, shape = process_data.load(
+    classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, y_event = process_data.load(
         args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
@@ -111,22 +111,35 @@ if __name__ == "__main__":
 
             # -- Plot output testing distributions from classifier and old strategies
             plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=fileID)
-            plot_outputs.old_strategy(ML_strategy, yhat_mHmatch_test, test_data, "mHmatch")
-            plot_outputs.old_strategy(ML_strategy, yhat_pThigh_test, test_data, "pThigh")
+            plot_outputs.old_strategy(ML_strategy, yhat_mHmatch_test == 0, test_data, "mHmatch")
+            plot_outputs.old_strategy(ML_strategy, yhat_pThigh_test == 0, test_data, "pThigh")
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logger.info("Plotting ROC curves")
-            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test, yhat_pThigh_test, yhat_test, test_data)
+            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test == 0, yhat_pThigh_test == 0, yhat_test, test_data)
 
-            # # -- put it back into event
-            # yhat_test_ev = process_data.match_shape(yhat_test, shape)
-            # yhat_mHmatch_test_ev = process_data.match_shape(yhat_mHmatch_test, shape)
-            # yhat_pThigh_test_ev = process_data.match_shape(yhat_pThigh_test, shape)
-            # import cPickle
-            # cPickle.dump(yhat_test_ev, open('yhat.pkl', 'wb'))
-            # cPickle.dump(shape, open('isCorrect.pkl', 'wb'))
-            # cPickle.dump(yhat_mHmatch_test_ev, open('mHmatch.pkl', 'wb'))
-            # cPickle.dump(yhat_pThigh_test_ev, open('pThigh.pkl', 'wb'))
+            # -- put it back into event
+            yhat_test_ev = process_data.match_shape(yhat_test, y_event)
+            yhat_mHmatch_test_ev = process_data.match_shape(yhat_mHmatch_test == 0, y_event)
+            yhat_pThigh_test_ev = process_data.match_shape(yhat_pThigh_test == 0, y_event)
+            import cPickle
+            cPickle.dump(yhat_test_ev, open('yhat.pkl', 'wb'))
+            cPickle.dump(y_event, open('isCorrect.pkl', 'wb'))
+            cPickle.dump(yhat_mHmatch_test_ev, open('mHmatch.pkl', 'wb'))
+            cPickle.dump(yhat_pThigh_test_ev, open('pThigh.pkl', 'wb'))
+            print 'Number of correctly classified events for BDT = {} out of {} events having a correct pair'.format(
+                sum([np.argmax(yhat_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
+                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
+                )
+            print 'Number of correctly classified events for mHmatch = {} out of {} events having a correct pair'.format(
+                sum([np.argmax(yhat_mHmatch_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
+                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
+                )
+            print 'Number of correctly classified events for pThigh = {} out of {} events having a correct pair'.format(
+                sum([np.argmax(yhat_pThigh_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
+                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
+                )
+            print 'Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))]))
 
 
         else:

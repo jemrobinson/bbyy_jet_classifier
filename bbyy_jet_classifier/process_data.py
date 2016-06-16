@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import logging
 import numpy as np
-from root_numpy import rec2array, root2rec
+from root_numpy import rec2array, root2rec, root2array
 from sklearn.cross_validation import train_test_split
 from sklearn.feature_selection import SelectKBest, f_classif
 
@@ -39,7 +39,7 @@ def load(input_filename, excluded_variables, training_fraction):
     for v_name in excluded_variables:
         logging.getLogger("process_data.load").info("... excluding variable {}".format(v_name))
     # -- import all root files into data_rec
-    data_rec = root2rec(input_filename, 'events')
+    data_rec = root2array(input_filename, 'events')
     # -- ordered dictionary of branches and their type
     variable2type = OrderedDict(((v_name, TYPE_2_CHAR[data_rec[v_name][0].dtype.name]) for v_name in data_rec.dtype.names \
         if v_name not in excluded_variables))
@@ -47,26 +47,29 @@ def load(input_filename, excluded_variables, training_fraction):
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
     # -- slice rec array to only contain input features
-    data_rec_feats = data_rec[classification_variables]
-    # -- go from event-flat to jet-flat
-    data_flat = [flatten(data_rec_feats[k]) for k in data_rec_feats.dtype.names]
-    X = np.array(data_flat).T
-    y = flatten(data_rec['isCorrect'])
-    # -- the weights are currently contant and equal to 10^-7 (??)
-    #w = flatten([[data_rec['event_weight'][ev]] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])])
-    w = flatten([[1.0] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])])
-    
-    yhat_mHmatch = flatten(data_rec["idx_by_mH"]) == 0
-    yhat_pThigh = flatten(data_rec["idx_by_pT"]) == 0  
-    
+    X = data_rec[classification_variables]
+    y = data_rec['isCorrect']
+    # weights are all equal and tiny right now, so I'm just setting them to 1...
+    w = [[1.0] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])]
+    yhat_mHmatch = data_rec["idx_by_mH"]
+    yhat_pThigh = data_rec["idx_by_pT"]  
+    ix = np.array(range(data_rec.shape[0]))
+
     # -- Construct training and test datasets, automatically permuted
     if training_fraction == 1: 
         # -- Can't pass `train_size=1`, but can use `test_size=0`
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test = \
-            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, test_size=0)
+        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, ix_train, ix_test = \
+            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, test_size=0)
+        
     else:
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test = \
-            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, train_size=training_fraction)
+        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, ix_train, ix_test = \
+            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, train_size=training_fraction)
+        
+    # -- go from event-flat to jet-flat    
+    y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test = \
+            [flatten(element) for element in [y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test]]
+    X_train = np.array([flatten(X_train[var]) for var in classification_variables]).T
+    X_test = np.array([flatten(X_test[var]) for var in classification_variables]).T
 
     # -- Balance training weights
     w_train = balance_weights(y_train, w_train)
@@ -79,7 +82,7 @@ def load(input_filename, excluded_variables, training_fraction):
     if training_fraction > 0:
         feature_selection(train_data, classification_variables, 5)
 
-    return classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, data_rec['isCorrect']
+    return classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, data_rec['isCorrect'][ix_test]
 
 
 def feature_selection(train_data, features, k):
