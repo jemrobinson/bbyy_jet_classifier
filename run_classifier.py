@@ -54,6 +54,101 @@ def check_args(args):
                           because if you are using {}% of your input data for training, \
                           you should not be testing on a separate pre-trained classifier.".format(100 * args.ftrain))
 
+# --------------------------------------------------------------
+# TO-DO: we might want to move this block of functions elsewhere
+
+def count_correct_total(yhat, y):
+    '''
+    Definition:
+    -----------
+        Quantify the number of events in which the correct jet pair was assigned the highest classifier score
+    Args:
+    -----
+        yhat: event level numpy array containing the predictions for each jet in the event
+        y:    event level numpy array containing the truth labels for each jet in the event
+    Returns:
+    --------
+        n_correct_classifier: int, number of events in which the correct jet pair was assigned the highest classifier score
+        n_correct_truth:      int, total number of events with a 'correct' jet pair
+    '''
+    n_correct_classifier = sum([np.argmax(yhat[ev]) == np.argmax(y[ev]) for ev in xrange(len(y)) if sum(y[ev]) == 1])
+    n_correct_truth = sum([sum(y[ev]) == 1 for ev in xrange(len(y))])
+    return n_correct_classifier, n_correct_truth
+
+
+def sb(mjb, y, yhat):
+    '''
+    Definition:
+    -----------
+        Calculate the amount of correctly and incorrectly classified events that fall in the [95, 135] GeV m_jb window
+    Args:
+    -----
+        mjb:  event level numpy array containing the values of m_jb for each jet in the event
+        y:    event level numpy array containing the truth labels for each jet in the event
+        yhat: event level numpy array containing the predictions for each jet in the event
+    Returns:
+    --------
+        s: float, the number of jet pairs properly classified as 'correct' that fall in the m_jb window
+        b: float, the number of jet pairs mistakenly classified as 'correct' that fall in the m_jb window
+    '''
+    mjb_correct = np.array([mjb[ev][np.argmax(yhat[ev])] \
+                for ev in xrange(len(y)) if ((sum(y[ev]) == 1) and (np.argmax(yhat[ev]) == np.argmax(y[ev]) )) ])
+
+    mjb_incorrect = np.array([mjb[ev][np.argmax(yhat[ev])] \
+        for ev in xrange(len(y)) if ((sum(y[ev]) != 1) or (np.argmax(yhat[ev]) != np.argmax(y[ev]))) ])
+
+    s = float(sum(np.logical_and((mjb_correct < 135), (mjb_correct > 95))))
+    b = float(sum(np.logical_and((mjb_incorrect < 135), (mjb_incorrect > 95))))
+    return s, b
+
+
+def asimov(s, b):
+    '''
+    Definition:
+    -----------
+        Calculates signal to background sensitivity according to the Asimov formula
+    Args:
+    -----
+        s: float, the number of jet pairs properly classified as 'correct' that fall in the m_jb window
+        b: float, the number of jet pairs mistakenly classified as 'correct' that fall in the m_jb window
+    Returns:
+    --------
+        The result of the Asimov formula given s and b
+    '''
+    import math
+    return math.sqrt(2 * ((s+b) * math.log(1 + (s/b)) - s))
+
+
+def print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event):
+    '''
+    Definition:
+    -----------
+        Log event-level performance outputs as info
+    Args:
+    -----
+        yhat_test_ev: event level numpy array containing the predictions from the BDT for each jet in the event
+        yhat_mHmatch_test_ev: event level numpy array containing the predictions from mHmatch for each jet in the event
+        yhat_pThigh_test_ev: event level numpy array containing the predictions from pThigh for each jet in the event
+        y_event: event level numpy array containing the truth labels for each jet in the event
+        mjb_event: event level numpy array containing the values of m_jb for each jet in the event
+    '''
+    logger = logging.getLogger("EventPerformance")
+    logger.info('Number of correctly classified events for BDT = {} out of {} events having a correct pair'.format(
+        *count_correct_total(yhat_test_ev, y_event)))
+    logger.info('Number of correctly classified events for mHmatch = {} out of {} events having a correct pair'.format(
+        *count_correct_total(yhat_mHmatch_test_ev, y_event)))
+    logger.info('Number of correctly classified events for pThigh = {} out of {} events having a correct pair'.format(
+        *count_correct_total(yhat_pThigh_test_ev, y_event)))
+    logger.info('Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
+
+    # -- check how many of the selected jet pairs fall into the [95, 135] GeV m_jb window
+    logger.info('S/B in m_bb window for BDT = {}'.format((lambda s,b : s/b)(*sb(mjb_event, y_event, yhat_test_ev))))
+    logger.info('Asimov in m_bb window for BDT = {}'.format(asimov(*sb(mjb_event, y_event, yhat_test_ev))))
+    logger.info('S/B in m_bb window for mHmatch = {}'.format((lambda s,b : s/b)(*sb(mjb_event, y_event, yhat_mHmatch_test_ev))))
+    logger.info('Asimov in m_bb window for mHmatch = {}'.format(asimov(*sb(mjb_event, y_event, yhat_mHmatch_test_ev))))
+    logger.info('S/B in m_bb window for pThigh = {}'.format((lambda s,b : s/b)(*sb(mjb_event, y_event, yhat_pThigh_test_ev))))
+    logger.info('Asimov in m_bb window for pThigh = {}'.format(asimov(*sb(mjb_event, y_event, yhat_pThigh_test_ev))))
+# --------------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -74,7 +169,7 @@ if __name__ == "__main__":
     train_location = args.train_location if args.train_location is not None else fileID
 
     # -- Load in root files and return literally everything about the data
-    classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, y_event = process_data.load(
+    classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, y_event, mjb_event = process_data.load(
         args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
@@ -118,29 +213,13 @@ if __name__ == "__main__":
             logger.info("Plotting ROC curves")
             plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test == 0, yhat_pThigh_test == 0, yhat_test, test_data)
 
-            # -- put it back into event
+            # -- put it back into event format 
             yhat_test_ev = process_data.match_shape(yhat_test, y_event)
             yhat_mHmatch_test_ev = process_data.match_shape(yhat_mHmatch_test == 0, y_event)
             yhat_pThigh_test_ev = process_data.match_shape(yhat_pThigh_test == 0, y_event)
-            import cPickle
-            cPickle.dump(yhat_test_ev, open('yhat.pkl', 'wb'))
-            cPickle.dump(y_event, open('isCorrect.pkl', 'wb'))
-            cPickle.dump(yhat_mHmatch_test_ev, open('mHmatch.pkl', 'wb'))
-            cPickle.dump(yhat_pThigh_test_ev, open('pThigh.pkl', 'wb'))
-            print 'Number of correctly classified events for BDT = {} out of {} events having a correct pair'.format(
-                sum([np.argmax(yhat_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
-                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
-                )
-            print 'Number of correctly classified events for mHmatch = {} out of {} events having a correct pair'.format(
-                sum([np.argmax(yhat_mHmatch_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
-                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
-                )
-            print 'Number of correctly classified events for pThigh = {} out of {} events having a correct pair'.format(
-                sum([np.argmax(yhat_pThigh_test_ev[ev]) == np.argmax(y_event[ev]) for ev in xrange(len(y_event)) if sum(y_event[ev]) != 0]),
-                sum([sum(y_event[ev]) != 0 for ev in xrange(len(y_event))])
-                )
-            print 'Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))]))
 
+            # -- print performance 
+            print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event)
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")
