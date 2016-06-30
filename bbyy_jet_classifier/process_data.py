@@ -46,11 +46,14 @@ def load(input_filename, excluded_variables, training_fraction):
     # -- variables used as inputs to the classifier
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
+    # -- throw away events with no jet pairs
+    data_rec = data_rec[np.array([len(data_rec['isCorrect'][ev]) > 0 for ev in xrange(data_rec.shape[0])])] 
     # -- slice rec array to only contain input features
     X = data_rec[classification_variables]
     y = data_rec['isCorrect']
     # weights are all equal and tiny right now, so I'm just setting them to 1...
-    w = [[1.0] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])]
+    #w = [[1.0] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])]
+    w = [[data_rec['event_weight'][ev]] * len(data_rec['isCorrect'][ev]) for ev in xrange(data_rec.shape[0])]
     yhat_mHmatch = data_rec["idx_by_mH"]
     yhat_pThigh = data_rec["idx_by_pT"]  
     ix = np.array(range(data_rec.shape[0]))

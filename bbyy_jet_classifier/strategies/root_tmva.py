@@ -43,7 +43,7 @@ class RootTMVA(BaseStrategy):
 
         #-- Define methods:
         factory.BookMethod(TMVA.Types.kBDT, "BDT", ":".join(
-            ["NTrees=200", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
+            ["NTrees=300", "MinNodeSize=10", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
         ))
 
         # -- Where stuff actually happens:

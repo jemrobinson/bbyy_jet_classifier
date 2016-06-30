@@ -66,9 +66,13 @@ def input_distributions(classification_variables, training_data, test_data, dire
         except (IndexError, ValueError):
             non_empty = training_data if len(training_data['y']) > 0 else test_data
             bins = np.linspace(min(non_empty['X'][:, i]), max(non_empty['X'][:, i]), 50)
-            y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, 
-                weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), 
-                histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+            try:
+                y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, 
+                    weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), 
+                    histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+            except ValueError: # when running on bkg only, we don't have any correct pairs!
+                pass
+
             y_2, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, 
                 weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), 
                 histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
@@ -78,7 +82,7 @@ def input_distributions(classification_variables, training_data, test_data, dire
         plt.xlabel(ROOT_2_LATEX[variable])
         plt.ylabel("Fraction of events")
         axes.set_xlim(min(bins), max(bins))
-        axes.set_ylim([0, max([1e-10, max(y_1 + y_2)])]) # ???
+        #axes.set_ylim([0, max([1e-10, max(y_1 + y_2)])]) # ???
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory

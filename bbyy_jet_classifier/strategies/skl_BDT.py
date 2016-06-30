@@ -32,23 +32,25 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
-        param_grid = {
-           'n_estimators' : [50, 100, 200, 300], 
-           'min_samples_split' : [2, 5],
-           'max_depth': [3, 5, 7, 10]
-        }
-        fit_params = {
-            'sample_weight' : train_data['w']
-        }
-        metaclassifier = GridSearchCV(GradientBoostingClassifier(), param_grid=param_grid, fit_params=fit_params, 
-            #scoring=event_accuracy, TO BE IMPLEMENTED! 
-            cv=2, verbose=1)
-        metaclassifier.fit(train_data['X'], train_data['y'])
-        classifier = metaclassifier.best_estimator_
-        print metaclassifier.best_params_
 
-        #classifier = GradientBoostingClassifier(n_estimators=100, min_samples_split=2, max_depth=6, verbose=1)
-        #classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
+        # param_grid = {
+        #    'n_estimators' : [50, 100, 200, 300], 
+        #    'min_samples_split' : [2, 5],
+        #    'max_depth': [3, 5, 7, 10]
+        # }
+
+        # fit_params = {
+        #     'sample_weight' : train_data['w']
+        # }
+        # metaclassifier = GridSearchCV(GradientBoostingClassifier(), param_grid=param_grid, fit_params=fit_params, 
+        #     #scoring=event_accuracy, TO BE IMPLEMENTED! 
+        #     cv=2, n_jobs=4, verbose=1)
+        # metaclassifier.fit(train_data['X'], train_data['y'])
+        # classifier = metaclassifier.best_estimator_
+        # print metaclassifier.best_params_
+
+        classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
+        classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle
         ensure_directory(os.path.join(self.output_directory, "pickle"))

@@ -23,9 +23,9 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
                 w = array of dim (# testing examples) with event weights
     """
     # -- Calculate efficiencies from the older strategies
-    eff_mH_signal = float(sum((mHmatch_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1]))
+    eff_mH_signal = float(sum((mHmatch_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
     eff_mH_bkg = float(sum((mHmatch_test * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
-    eff_pT_signal = float(sum((pThigh_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1]))
+    eff_pT_signal = float(sum((pThigh_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
     eff_pT_bkg = float(sum((pThigh_test * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
 
     ensure_directory(os.path.join(ML_strategy.output_directory, "pickle"))
