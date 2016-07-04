@@ -15,12 +15,6 @@ def parse_args():
     parser.add_argument("--input", type=str,
                         help="input file name", required=True)
 
-    # parser.add_argument("--correct_tree", metavar="NAME_OF_TREE", type=str,
-    #                     help="name of tree containing correctly identified pairs", default="correct")
-
-    # parser.add_argument("--incorrect_tree", metavar="NAME_OF_TREE", type=str,
-    #                     help="name of tree containing incorrectly identified pairs", default="incorrect")
-
     parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", 
                         help="list of variables to exclude", default=[])
 
@@ -68,18 +62,20 @@ if __name__ == "__main__":
     # -- Check that input file exists
     if not os.path.isfile(args.input):
         raise OSError("{} does not exist!".format(args.input))
+    sample_name = args.input.replace(".root", "").split("/")[-1]
 
     # -- Set up folder paths
-    fileID = os.path.splitext(os.path.split(args.input)[-1])[0]
-    train_location = args.train_location if args.train_location is not None else fileID
+    sample_name = os.path.splitext(os.path.split(args.input)[-1])[0]
+    train_location = args.train_location if args.train_location is not None else sample_name
 
     # -- Load in root files and return literally everything about the data
     classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, shape = process_data.load(
         args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
-    utils.ensure_directory(os.path.join(fileID, "classification_variables"))
-    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=os.path.join(fileID, "classification_variables"))
+    utils.ensure_directory(os.path.join('output', 'classification_variables'))
+    plot_inputs.input_distributions(classification_variables, train_data, test_data, 
+        output_directory=os.path.join('output', 'classification_variables'), sample_name=sample_name)
 
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
     for strategy_name in args.strategy:
@@ -87,7 +83,7 @@ if __name__ == "__main__":
         # -- Construct dictionary of available strategies
         if strategy_name not in strategies.__dict__.keys():
             raise AttributeError("{} is not a valid strategy".format(strategy_name))
-        ML_strategy = getattr(strategies, strategy_name)(fileID)
+        ML_strategy = getattr(strategies, strategy_name)(sample_name)
 
         # -- Training!
         if args.ftrain > 0:
@@ -98,8 +94,8 @@ if __name__ == "__main__":
 
             # -- Plot the classifier output as tested on the training set 
             # -- (only useful if you care to check the performance on the training set)
-            yhat_train = ML_strategy.test(train_data, classification_variables, process="training", train_location=fileID)
-            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", fileID=fileID)
+            yhat_train = ML_strategy.test(train_data, classification_variables, process="training", train_location=sample_name)
+            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 
         else:
             logger.info("Preparing to use 100% of sample as testing input")
@@ -110,29 +106,19 @@ if __name__ == "__main__":
             yhat_test = ML_strategy.test(test_data, classification_variables, process="testing", train_location=train_location)
 
             # -- Plot output testing distributions from classifier and old strategies
-            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", fileID=fileID)
-            plot_outputs.old_strategy(ML_strategy, yhat_mHmatch_test, test_data, "mHmatch")
-            plot_outputs.old_strategy(ML_strategy, yhat_pThigh_test, test_data, "pThigh")
+            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=sample_name)
+            # plot_outputs.old_strategy(ML_strategy, mHmatch_test, test_data, old_strategy_name="mHmatch", sample_name=sample_name)
+            # plot_outputs.old_strategy(ML_strategy, pThigh_test, test_data, old_strategy_name="pThigh", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, yhat_mHmatch_test, test_data, "mHmatch", sample_name=sample_name)
+            plot_outputs.old_strategy(ML_strategy, yhat_pThigh_test, test_data, "pThigh", sample_name=sample_name)
 
             # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
             logger.info("Plotting ROC curves")
-            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test, yhat_pThigh_test, yhat_test, test_data)
-
-            # # -- put it back into event
-            # yhat_test_ev = process_data.match_shape(yhat_test, shape)
-            # yhat_mHmatch_test_ev = process_data.match_shape(yhat_mHmatch_test, shape)
-            # yhat_pThigh_test_ev = process_data.match_shape(yhat_pThigh_test, shape)
-            # import cPickle
-            # cPickle.dump(yhat_test_ev, open('yhat.pkl', 'wb'))
-            # cPickle.dump(shape, open('isCorrect.pkl', 'wb'))
-            # cPickle.dump(yhat_mHmatch_test_ev, open('mHmatch.pkl', 'wb'))
-            # cPickle.dump(yhat_pThigh_test_ev, open('pThigh.pkl', 'wb'))
-
+            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_mHmatch_test, yhat_pThigh_test, yhat_test, test_data, sample_name=sample_name)
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")
 
-    # -- if there is more than one strategy and we aren't only training, plot the ROC comparison
-    if (len(args.strategy) > 1 and (args.ftrain < 1)):
-        logger.info("Plotting ROC comparison")
-        plot_roc.roc_comparison(fileID)
+    # -- if there is more than one strategy, plot the ROC comparison
+    if len(args.strategy) > 1:
+        plot_roc.roc_comparison(output_directory="output", sample_name=sample_name)

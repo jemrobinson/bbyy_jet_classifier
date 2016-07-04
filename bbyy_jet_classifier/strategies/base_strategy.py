@@ -2,11 +2,10 @@ import os
 from ..utils import ensure_directory
 
 class BaseStrategy(object):
-    default_output_location = None
-
+    
     def __init__(self, output_directory):
         self.name = self.__module__.split(".")[-1] 
-        self.output_directory = os.path.join(output_directory, self.default_output_subdir)
+        self.output_directory = os.path.join("output", self.name, output_directory) #os.path.join(output_directory, self.default_output_subdir)
         ensure_directory(self.output_directory)
 
     def train(self, train_data, classification_variables, variable_dict):

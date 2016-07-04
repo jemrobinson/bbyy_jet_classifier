@@ -38,6 +38,7 @@ def load(input_filename, excluded_variables, training_fraction):
     logging.getLogger("process_data.load").info("Loading input from ROOT files")
     for v_name in excluded_variables:
         logging.getLogger("process_data.load").info("... excluding variable {}".format(v_name))
+
     # -- import all root files into data_rec
     data_rec = root2rec(input_filename, 'events')
     # -- ordered dictionary of branches and their type
@@ -75,8 +76,9 @@ def load(input_filename, excluded_variables, training_fraction):
     train_data = {'X': X_train, 'y': y_train, 'w': w_train}
     test_data = {'X': X_test, 'y': y_test, 'w': w_test}
 
-    # -- ANOVA for feature selection (please, know what you're doing)
+
     if training_fraction > 0:
+        # -- ANOVA for feature selection (please, know what you're doing)
         feature_selection(train_data, classification_variables, 5)
 
     return classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, data_rec['isCorrect']
@@ -178,4 +180,3 @@ def flatten(column):
         return np.array([v for e in column for v in e])
     except (TypeError, ValueError):
         return column
-

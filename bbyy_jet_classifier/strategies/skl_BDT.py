@@ -12,7 +12,6 @@ class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_subdir = "sklBDT"  # os.path.join("output", "sklBDT")
 
     def train(self, train_data, classification_variables, variable_dict):
         """
@@ -31,7 +30,7 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=200, min_samples_split=2, max_depth=10, verbose=1)
+        classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
         # -- Dump output to pickle
@@ -50,9 +49,9 @@ class sklBDT(BaseStrategy):
                 X = ndarray of dim (# examples, # features)
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
-            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
-            train_location = string that specifies the fileID of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh') 
+            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
+            train_location = string that specifies the name of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh') 
 
         Returns:
         --------
@@ -61,8 +60,8 @@ class sklBDT(BaseStrategy):
         logging.getLogger("sklBDT.test").info("Evaluating performance...")
 
         # -- Load scikit classifier
-        classifier = joblib.load(os.path.join(train_location, self.default_output_subdir, 'pickle', 'sklBDT_clf.pkl'))
-        
+        classifier = joblib.load(os.path.join("output", self.name, train_location, 'pickle', 'sklBDT_clf.pkl'))
+
         # -- Get classifier predictions
         yhat = classifier.predict_proba(data['X'])[:, 1]
 

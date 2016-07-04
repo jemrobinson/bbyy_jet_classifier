@@ -5,7 +5,7 @@ import numpy as np
 import plot_atlas
 from ..utils import ensure_directory
 
-def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
+def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_name):
     """
     Definition:
     -----------
@@ -19,6 +19,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
                 y = array of dim (# testing examples) with target values
                 w = array of dim (# testing examples) with event weights
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
+            sample_name = string, name of the file under consideration (e.g. 'X350_hh')
     """
     # -- Ensure output directory exists
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing"))
@@ -42,10 +43,11 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
 
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
-    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}.pdf".format(old_strategy_name)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_classifier_{}.pdf".format(old_strategy_name, sample_name)))
+    plt.close(figure)
 
 
-def classifier_output(ML_strategy, yhat, data, process, fileID):
+def classifier_output(ML_strategy, yhat, data, process, sample_name):
     """
     Definition:
     -----------
@@ -59,7 +61,7 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
-            fileID = arbitrary string that refers back to the input file, usually
+            sample_name = arbitrary string that refers back to the input file, usually
     """
     # -- Ensure output directory exists
     ensure_directory(os.path.join(ML_strategy.output_directory, process))
@@ -82,5 +84,5 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
     plot_atlas.use_atlas_labels(axes)
 
     # -- Write figure and close plot to save memory
-    figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(fileID)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, process, "{}_classifier_{}.pdf".format(ML_strategy.name, sample_name)))
     plt.close(figure)

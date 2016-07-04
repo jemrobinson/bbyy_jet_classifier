@@ -6,7 +6,7 @@ import plot_atlas
 from viz import add_curve, calculate_roc, ROC_plotter
 from ..utils import ensure_directory
 
-def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data):
+def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, test_data, sample_name):
     """
     Definition:
     -----------
@@ -21,6 +21,7 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
         test_data = dictionary, containing "y", "w" for the test set, where:
                 y = array of dim (# testing examples) with target values
                 w = array of dim (# testing examples) with event weights
+        sample_name = string, name of the file under consideration (e.g. 'X350_hh')
     """
     # -- Calculate efficiencies from the older strategies
     eff_mH_signal = float(sum((mHmatch_test * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1]))
@@ -47,31 +48,45 @@ def signal_eff_bkg_rejection(ML_strategy, mHmatch_test, pThigh_test, yhat_test, 
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
-    figure.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "ROC_{}.pdf".format(sample_name)))
+    plt.close(figure)
 
     # -- Save out ROC curve as pickle for later comparison
-    cPickle.dump(discrim_dict[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
+    cPickle.dump(
+        discrim_dict[ML_strategy.name], 
+        open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC_{}.pkl".format(ML_strategy.name, sample_name)), "wb"), 
+        cPickle.HIGHEST_PROTOCOL
+    )
 
 
-def roc_comparison(fileID):
+def roc_comparison(output_directory, sample_name):
+
     """
     Definition:
     ------------
         Quick script to load and compare ROC curves produced from different classifiers
+    Args:
+    -----
+        output_directory = string, path to the directory where the ROC comparison will be saved
+        sample_name = string, name of the file under consideration (e.g. 'X350_hh')
     """
-    TMVABDT = cPickle.load(open(os.path.join(fileID, "RootTMVA", "pickle", "root_tmva_ROC.pkl"), "rb"))
-    sklBDT = cPickle.load(open(os.path.join(fileID, "sklBDT", "pickle", "skl_BDT_ROC.pkl"), "rb"))
-    dots = cPickle.load(open(os.path.join(fileID, "sklBDT", "pickle", "old_strategies_dict.pkl"), "rb"))
+    TMVABDT = cPickle.load(open(os.path.join("output", "root_tmva", sample_name, "pickle", "root_tmva_ROC_{}.pkl".format(sample_name)), "rb"))
+    sklBDT = cPickle.load(open(os.path.join("output", "skl_BDT", sample_name, "pickle", "skl_BDT_ROC_{}.pkl".format(sample_name)), "rb"))
+    dots = cPickle.load(open(os.path.join("output", "skl_BDT", sample_name, "pickle", "old_strategies_dict.pkl"), "rb"))
 
     sklBDT["color"] = "green"
     curves = {"sklBDT": sklBDT, "RootTMVA": TMVABDT}
 
     # -- Initialise figure and axes
     logging.getLogger("RunClassifier").info("Plotting")
-    figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
+    figure = ROC_plotter(curves, title="", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
 
+    # -- Plot old strategies
     plt.plot(dots["eff_mH_signal"], 1.0 / dots["eff_mH_bkg"], marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(dots["eff_pT_signal"], 1.0 / dots["eff_pT_bkg"], marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
+
+    # -- Plot legend/axes/etc.
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
-    figure.savefig(os.path.join(fileID, "ROCcomparison.pdf"))
+    figure.savefig(os.path.join(output_directory, "ROCcomparison_{}.pdf".format(sample_name)))
+    plt.close(figure)

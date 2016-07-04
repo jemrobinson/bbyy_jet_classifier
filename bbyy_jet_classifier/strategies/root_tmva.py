@@ -6,12 +6,10 @@ from . import BaseStrategy
 from ROOT import TCut, TFile, TMVA
 from root_numpy.tmva import add_classification_events, evaluate_reader
 
-
 class RootTMVA(BaseStrategy):
     """
     Strategy using a BDT from ROOT TMVA
     """
-    default_output_subdir = "RootTMVA"  # os.path.join("output", "RootTMVA")
 
     def train(self, train_data, classification_variables, variable_dict):
         """
@@ -35,15 +33,15 @@ class RootTMVA(BaseStrategy):
             factory.AddVariable(v_name, variable_dict[v_name])
 
         # Call root_numpy's utility functions to add events from the arrays
-        add_classification_events(factory, train_data['X'], train_data['y'], weights=train_data['w'])
-        add_classification_events(factory, train_data['X'][0:50], train_data['y'][0:50], weights=train_data['w'][0:50], test=True)  # need to add some testing events or TMVA will complain
+        add_classification_events(factory, train_data["X"], train_data["y"], weights=train_data["w"])
+        add_classification_events(factory, train_data["X"][0:500], train_data["y"][0:500], weights=train_data["w"][0:500], test=True)  # need to add some testing events or TMVA will complain
 
         # The following line is necessary if events have been added individually:
         factory.PrepareTrainingAndTestTree(TCut("1"), "NormMode=EqualNumEvents")
 
         #-- Define methods:
         factory.BookMethod(TMVA.Types.kBDT, "BDT", ":".join(
-            ["NTrees=200", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
+            ["NTrees=300", "MinNodeSize=5", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
         ))
 
         # -- Where stuff actually happens:
@@ -67,9 +65,9 @@ class RootTMVA(BaseStrategy):
                 X = ndarray of dim (# examples, # features)
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
-            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
-
+            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
+            train_location = string that specifies the name of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh') 
         Returns:
         --------
             yhat = the array of BDT outputs, of dimensions (n_events)
@@ -83,7 +81,7 @@ class RootTMVA(BaseStrategy):
             reader.AddVariable(v_name, array.array("f", [0]))
 
         # -- Load TMVA results
-        reader.BookMVA("BDT", os.path.join(train_location, self.default_output_subdir, "weights", "TMVAClassification_BDT.weights.xml"))
+        reader.BookMVA("BDT", os.path.join("output", self.name, train_location, "weights", "TMVAClassification_BDT.weights.xml"))
 
         yhat = evaluate_reader(reader, "BDT", data['X'])
         return yhat

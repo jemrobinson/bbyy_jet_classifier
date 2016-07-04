@@ -3,24 +3,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import plot_atlas
+from bbyy_jet_classifier import strategies
 
 ROOT_2_LATEX = {
-    "abs_eta_j": r"$|\eta_{j}|$", 
+    "abs_eta_j": r"$|\eta_{j}|$",
     "abs_eta_jb": r"$|\eta_{jb}|$",
-    "Delta_eta_jb": r"$\Delta\eta_{jb}$", 
+    "Delta_eta_jb": r"$\Delta\eta_{jb}$",
     "Delta_phi_jb": r"$\Delta\phi_{jb}$",
-    "idx_by_mH": r"$m_{H}$ matching order", 
+    "idx_by_mH": r"$m_{H}$ matching order",
     "idx_by_pT": r"$p_{T}$ order",
-    "m_jb": r"$m_{jb}$", 
-    "pT_j": r"$p_{T}^{j}$", 
+    "m_jb": r"$m_{jb}$",
+    "pT_j": r"$p_{T}^{j}$",
     "pT_jb": r"$p_{T}^{jb}$",
-    "MV2c20_FCBE_70": r"MV2c20 FCBE(70%)", 
+    "MV2c20_FCBE_70": r"MV2c20 FCBE(70%)",
     "MV2c20_FCBE_77": r"MV2c20 FCBE(77%)",
-    "MV2c20_FCBE_85": r"MV2c20 FCBE(85%)" 
+    "MV2c20_FCBE_85": r"MV2c20 FCBE(85%)"
     }
 
 
-def input_distributions(classification_variables, training_data, test_data, directory):
+def input_distributions(classification_variables, training_data, test_data, output_directory, sample_name):
     """
     Definition:
     -----------
@@ -28,12 +29,17 @@ def input_distributions(classification_variables, training_data, test_data, dire
 
     Args:
     -----
-            strategy = a classification method -- here either sklBDT or RootTMVA
-            data = dictionary, containing 'X', 'y', 'w' for a dataset, where:
-                X = ndarray of dim (# examples, # features)
-                y = array of dim (# examples) with target values
-                w = array of dim (# examples) with event weights
-            process = string, either "training" or "testing", usually
+         classification_variables = list of names of variables used for classification
+         training_data = dictionary, containing 'X', 'y', 'w' for the training set, where:
+                X = ndarray of dim (# training examples, # features)
+                y = array of dim (# training examples) with target values
+                w = array of dim (# training examples) with event weights
+        test_data = dictionary, containing 'X', 'y', 'w' for the test set, where:
+                X = ndarray of dim (# testing examples, # features)
+                y = array of dim (# testing examples) with target values
+                w = array of dim (# testing examples) with event weights
+         output_directory = string, path to the folder where the pdf's will be saved
+         sample_name = string, name of the file under consideration (e.g. 'X350_hh')   
     """
     # -- Setup ATLAS style
     logging.getLogger("plotting.input_distributions").info("Plotting input distributions")
@@ -63,14 +69,14 @@ def input_distributions(classification_variables, training_data, test_data, dire
             _contents, _ = np.histogram(X_train_incorrect, bins=bins, weights=training_data['w'][training_data['y'] == 0] / float(sum(training_data['w'][training_data['y'] == 0])))
             plt.scatter(bin_centres[np.nonzero(_contents)], _contents[np.nonzero(_contents)], label="Incorrect (train)", color="red")
 
-        except (IndexError, ValueError):
+        except (IndexError, ValueError): 
             non_empty = training_data if len(training_data['y']) > 0 else test_data
             bins = np.linspace(min(non_empty['X'][:, i]), max(non_empty['X'][:, i]), 50)
-            y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, 
-                weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), 
+            y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins,
+                weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])),
                 histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-            y_2, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, 
-                weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), 
+            y_2, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins,
+                weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])),
                 histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
         # -- Plot legend/axes/etc.
@@ -78,9 +84,9 @@ def input_distributions(classification_variables, training_data, test_data, dire
         plt.xlabel(ROOT_2_LATEX[variable])
         plt.ylabel("Fraction of events")
         axes.set_xlim(min(bins), max(bins))
-        axes.set_ylim([0, max([1e-10, max(y_1 + y_2)])]) # ???
+        axes.set_ylim([0, max(y_1 + y_2)])
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory
-        figure.savefig(os.path.join(directory, "{}.pdf".format(variable)))
+        figure.savefig(os.path.join(output_directory, "{}_{}.pdf".format(variable, sample_name)))
         plt.close(figure)
