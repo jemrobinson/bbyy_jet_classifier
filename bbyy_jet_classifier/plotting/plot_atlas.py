@@ -47,8 +47,8 @@ def use_atlas_labels(ax, lumi=1.04):
              fontname="sans-serif", weight="bold", style="oblique", transform=ax.transAxes)
     plt.text(0.22, 0.92, "Internal", va="bottom", ha="left", color="black", size=18,
              fontname="sans-serif", transform=ax.transAxes)
-    plt.text(0.03, 0.83, r"$\sqrt{{s}} = 13\ TeV, {} fb^{{-1}}$".format(lumi), va="bottom",
-             ha="left", color="black", size=16, fontname="sans-serif", transform=ax.transAxes)
+    # plt.text(0.03, 0.83, r"$\sqrt{{s}} = 13\ TeV, {} fb^{{-1}}$".format(lumi), va="bottom",
+    #          ha="left", color="black", size=16, fontname="sans-serif", transform=ax.transAxes)
 
     # -- Force axis labels into correct position
     ax.xaxis.label.set_ha("right")

@@ -1,8 +1,10 @@
 import logging
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import plot_atlas
+from sklearn.metrics import confusion_matrix
 from ..utils import ensure_directory
 
 def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
@@ -46,6 +48,33 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}.pdf".format(old_strategy_name)))
+
+def confusion(ML_strategy, yhat, data, model_name):
+    '''
+    '''
+    
+    y_test = data['y']
+    plt.clf()
+    fig = plt.figure(figsize=(11.69, 10.27), dpi=100)
+    matplotlib.rcParams.update({'font.size': 10})
+    def _plot_confusion_matrix(cm, title='Confusion Matrix', cmap=plt.cm.RdPu):
+        plt.imshow(cm, interpolation='nearest', cmap=cmap)
+        plt.title(title)
+        plt.colorbar()
+        tick_marks = np.arange(len(np.unique(y_test)))
+        plt.xticks(tick_marks, ['Incorrect', 'Correct'])
+        plt.yticks(tick_marks, ['Incorrect', 'Correct'], rotation='vertical')
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
+        plt.tight_layout()
+
+    cm = confusion_matrix(y_test, yhat)
+    # Normalize the confusion matrix by row (i.e by the number of samples
+    # in each class)
+    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
+    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "confusion_{}.pdf".format(model_name)))
+    #plt.close(fig)
 
 
 def classifier_output(ML_strategy, yhat, data, process, fileID):
