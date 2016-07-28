@@ -1,8 +1,15 @@
+'''
+run:
+python evaluate_event_performance.py hh_yybb/for_event_performance.pkl \
+X275_hh/for_event_performance.pkl X300_hh/for_event_performance.pkl \
+X325_hh/for_event_performance.pkl X350_hh/for_event_performance.pkl \
+X400_hh/for_event_performance.pkl Sherpa_photon_jet/for_event_performance.pkl
+'''
 import cPickle
 import logging
 from itertools import izip
 import numpy as np
-from tqdm import tqdm
+from tabulate import tabulate
 from bbyy_jet_classifier import utils
 
 INMJB_PATH = 'event-level-perf.pkl'
@@ -19,7 +26,7 @@ def main(pickle_paths):
         logger.info('Dictionary not found in ' + INMJB_PATH + '. Processing data...')
         perf_dict = {}
         for path in pickle_paths:
-            print path
+            logger.info('\nWorking on ' + path)
             d = cPickle.load(open(path, 'rb'))
             perf_dict[path.split('/')[0]] = eval_performance(
                             d['yhat_test_ev'], 
@@ -31,16 +38,18 @@ def main(pickle_paths):
                             )
         cPickle.dump(perf_dict, open(INMJB_PATH, 'wb'))
 
-    logger.info('Asimov significance per class:')
-    for strategy in ['BDT', 'mHmatch', 'pThigh']:
-        logger.info('{}: {}'.format(
-            strategy, 
-            [asimov(perf_dict[path.split('/')[0]][strategy], perf_dict[BKG_NAME][strategy]) 
-                for path in pickle_paths 
-                if path.split('/')[0] != BKG_NAME
-            ]
-            )
+    headers = [path.split('/')[0] for path in pickle_paths if path.split('/')[0] != BKG_NAME]
+    logger.info('Asimov significance per class:\n{}'.format(
+        tabulate([
+            [strategy] +  \
+            [asimov(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy]) 
+                for _class in headers] 
+        for strategy in ['BDT', 'mHmatch', 'pThigh']
+        ],
+        headers=[""] + headers,
+        floatfmt=".5f")
         )
+    )
 
 def asimov(s, b):
     '''
@@ -87,11 +96,11 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
     # 3 categories: truly correct pair present and got it right, truly correct pair present and got it wrong, no correct pair present
     # -- check this for all 3 strategies (BDT, mHmatch, pThigh)
     # 1. was there a correct pair?
-    correct_present_truth = np.array([sum(ev) == 1 for ev in tqdm(y_event)]) 
+    correct_present_truth = np.array([sum(ev) == 1 for ev in y_event]) 
     # ^ this is strategy agnostic, can be calculated outside
-    in_BDT =  in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth)
-    in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth)
-    in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth)
+    in_BDT =  in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, 'BDT')
+    in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth, 'mHmatch')
+    in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth, 'pThigh')
     return {
             'BDT' : in_BDT,
             'mHmatch' : in_mHmatch,
@@ -121,16 +130,15 @@ def count_correct_total(yhat, y):
     return n_correct_classifier, n_correct_truth
 
 
-def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth):
-    logger = logging.getLogger("in_mjb_window")
+def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, strategy):
+    logger = logging.getLogger("mjb_window - " + strategy)
     # -- if there was a correct pair and we got it right, how many times does it fall into m_jb? how many times does it not?
     # -- if there was a correct pair and we got it wrong, how many times does it fall into m_jb? how many times does it not?
     # -- if there was no correct pair, how many times does the pair we picked fall into m_jb? how many times does it not?
     # 1. was there a correct pair?
     # correct_present_truth
     # 2. does the bdt agree with the truth label? aka got it right?
-    # agree_with_truth = np.array([(np.argmax(yhat_test_ev[ev]) == np.argmax(y_event[ev])) for ev in tqdm(xrange(len(y_event))) ])
-    agree_with_truth = np.array([(np.argmax(yhat) == np.argmax(y)) for yhat, y in tqdm(izip(yhat_test_ev, y_event))])
+    agree_with_truth = np.array([(np.argmax(yhat) == np.argmax(y)) for yhat, y in izip(yhat_test_ev, y_event)])
     # 3. truly correct present and selected (A)
     correct_truth_correct_BDT = np.array(np.logical_and(correct_present_truth, agree_with_truth))
     # 4. truly correct present but selected other pair (B)
@@ -139,15 +147,15 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
 
     # -- look at mjb for these 3 cases:
     # -- boolean
-    in_mjb = [np.logical_and(mjb_event[ev] < 135, mjb_event[ev] > 95) for ev in tqdm(xrange(len(mjb_event)))]
+    in_mjb = [np.logical_and(mjb_event[ev] < 135, mjb_event[ev] > 95) for ev in xrange(len(mjb_event))]
 
     # -- weights * boolean
-    weights_in_mjb = np.array([_w * _m for _w, _m in tqdm(izip(w_test, in_mjb))])
+    weights_in_mjb = np.array([_w * _m for _w, _m in izip(w_test, in_mjb)])
 
     def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer):
         sliced_weights = weights_in_mjb[slicer]
         sliced_yhat = np.array(yhat_test_ev)[slicer]
-        return np.sum(w[np.argmax(y)] for w, y in tqdm(izip(sliced_weights, sliced_yhat)))
+        return np.sum(w[np.argmax(y)] for w, y in izip(sliced_weights, sliced_yhat))
       
     num_inA = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT) 
     num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT)
@@ -166,7 +174,6 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
         ))
     logger.info('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
     logger.info('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
-
     return num_inA + num_inB + num_inC
 
 if __name__ == '__main__':
