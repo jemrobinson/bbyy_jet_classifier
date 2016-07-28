@@ -14,6 +14,7 @@ from bbyy_jet_classifier import utils
 
 INMJB_PATH = 'event-level-perf.pkl'
 BKG_NAME = 'Sherpa_photon_jet'
+THRESHOLD = 0.4
 
 def main(pickle_paths):
     logger = logging.getLogger("main")
@@ -47,7 +48,7 @@ def main(pickle_paths):
         for strategy in ['BDT', 'mHmatch', 'pThigh']
         ],
         headers=[""] + headers,
-        floatfmt=".5f")
+        floatfmt=".8f")
         )
     )
 
@@ -82,13 +83,13 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
         mjb_event: event level numpy array containing the values of m_jb for each jet in the event
     '''
     logger = logging.getLogger("eval_performance")
-    logger.info('BDT: Number of correctly classified events = {} out of {} events having a correct pair'.format(
+    logger.debug('BDT: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_test_ev, y_event)))
-    logger.info('mHmatch: Number of correctly classified events = {} out of {} events having a correct pair'.format(
+    logger.debug('mHmatch: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_mHmatch_test_ev, y_event)))
-    logger.info('pThigh: Number of correctly classified events = {} out of {} events having a correct pair'.format(
+    logger.debug('pThigh: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_pThigh_test_ev, y_event)))
-    logger.info('Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
+    logger.debug('Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
 
     # check whether selected pair has m_jb in mass window for truly correct and truly incorrect pairs
     # -- this will make little sense for SM_merged because lots of events are bkg and shouldn't fall in m_bj window, but can't tell them
@@ -155,25 +156,25 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
     def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer):
         sliced_weights = weights_in_mjb[slicer]
         sliced_yhat = np.array(yhat_test_ev)[slicer]
-        return np.sum(w[np.argmax(y)] for w, y in izip(sliced_weights, sliced_yhat))
+        return np.sum(w[np.argmax(y)] for w, y in izip(sliced_weights, sliced_yhat) if max(y) >= THRESHOLD)
       
     num_inA = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT) 
     num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT)
     num_inC = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, -correct_present_truth)
 
-    logger.info('Total number of events with a correct pair present and identified = {}'.format(
+    logger.debug('Total number of events with a correct pair present and identified = {}'.format(
         sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))
         ))
-    logger.info('Of these events, {} fall in m_jb window'.format(num_inA))
-    logger.info('Total number of events with a correct pair present but a different one selected = {}'.format(
+    logger.debug('Of these events, {} fall in m_jb window'.format(num_inA))
+    logger.debug('Total number of events with a correct pair present but a different one selected = {}'.format(
         sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))
         ))
-    logger.info('Of these events, {} fall in m_jb window'.format(num_inB))
-    logger.info('Total number of events without a correct pair = {}'.format(
+    logger.debug('Of these events, {} fall in m_jb window'.format(num_inB))
+    logger.debug('Total number of events without a correct pair = {}'.format(
         sum((w * c) for w, c in izip(w_test, -correct_present_truth))
         ))
-    logger.info('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
-    logger.info('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
+    logger.debug('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
+    logger.debug('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
     return num_inA + num_inB + num_inC
 
 if __name__ == '__main__':
