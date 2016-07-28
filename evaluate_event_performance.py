@@ -1,21 +1,65 @@
 import cPickle
 import logging
+from itertools import izip
 import numpy as np
-import tqdm
+from tqdm import tqdm
+from bbyy_jet_classifier import utils
 
-def main(pickle_path):
-	d = cPickle.load(open(pickle_path, 'rb'))
-	print_performance(
-                d['yhat_test_ev'], 
-                d['yhat_mHmatch_test_ev'], 
-                d['yhat_pThigh_test_ev'], 
-                d['y_event'], 
-                d['mjb_event'], 
-                d['w_test']
-                )
+INMJB_PATH = 'event-level-perf.pkl'
+BKG_NAME = 'Sherpa_photon_jet'
+
+def main(pickle_paths):
+    logger = logging.getLogger("main")
+    
+    try:
+        perf_dict = cPickle.load(open(INMJB_PATH, 'rb'))
+        logger.info('Dictionary found and loaded from ' + INMJB_PATH)
+
+    except IOError: # if it doesn't exist, create it
+        logger.info('Dictionary not found in ' + INMJB_PATH + '. Processing data...')
+        perf_dict = {}
+        for path in pickle_paths:
+            print path
+            d = cPickle.load(open(path, 'rb'))
+            perf_dict[path.split('/')[0]] = eval_performance(
+                            d['yhat_test_ev'], 
+                            d['yhat_mHmatch_test_ev'], 
+                            d['yhat_pThigh_test_ev'], 
+                            d['y_event'], 
+                            d['mjb_event'], 
+                            d['w_test']
+                            )
+        cPickle.dump(perf_dict, open(INMJB_PATH, 'wb'))
+
+    logger.info('Asimov significance per class:')
+    for strategy in ['BDT', 'mHmatch', 'pThigh']:
+        logger.info('{}: {}'.format(
+            strategy, 
+            [asimov(perf_dict[path.split('/')[0]][strategy], perf_dict[BKG_NAME][strategy]) 
+                for path in pickle_paths 
+                if path.split('/')[0] != BKG_NAME
+            ]
+            )
+        )
+
+def asimov(s, b):
+    '''
+    Definition:
+    -----------
+        Calculates signal to background sensitivity according to the Asimov formula
+    Args:
+    -----
+        s: float, the number of jet pairs properly classified as 'correct' that fall in the m_jb window
+        b: float, the number of jet pairs mistakenly classified as 'correct' that fall in the m_jb window
+    Returns:
+    --------
+        The result of the Asimov formula given s and b
+    '''
+    import math
+    return math.sqrt(2 * ((s+b) * math.log(1 + (s/b)) - s))
 
 
-def print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event, w_test):
+def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event, w_test):
     '''
     Definition:
     -----------
@@ -28,12 +72,12 @@ def print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y
         y_event: event level numpy array containing the truth labels for each jet in the event
         mjb_event: event level numpy array containing the values of m_jb for each jet in the event
     '''
-    logger = logging.getLogger("EventPerformance")
-    logger.info('Number of correctly classified events for BDT = {} out of {} events having a correct pair'.format(
+    logger = logging.getLogger("eval_performance")
+    logger.info('BDT: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_test_ev, y_event)))
-    logger.info('Number of correctly classified events for mHmatch = {} out of {} events having a correct pair'.format(
+    logger.info('mHmatch: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_mHmatch_test_ev, y_event)))
-    logger.info('Number of correctly classified events for pThigh = {} out of {} events having a correct pair'.format(
+    logger.info('pThigh: Number of correctly classified events = {} out of {} events having a correct pair'.format(
         *count_correct_total(yhat_pThigh_test_ev, y_event)))
     logger.info('Number of events without any correct pair = {}'.format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
 
@@ -43,14 +87,19 @@ def print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y
     # 3 categories: truly correct pair present and got it right, truly correct pair present and got it wrong, no correct pair present
     # -- check this for all 3 strategies (BDT, mHmatch, pThigh)
     # 1. was there a correct pair?
-    correct_present_truth = np.array([(sum(y_event[ev]) == 1) for ev in tqdm(xrange(len(y_event))) ]) 
+    correct_present_truth = np.array([sum(ev) == 1 for ev in tqdm(y_event)]) 
     # ^ this is strategy agnostic, can be calculated outside
-    in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth)
-    in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth)
-    in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth)
+    in_BDT =  in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth)
+    in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth)
+    in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth)
+    return {
+            'BDT' : in_BDT,
+            'mHmatch' : in_mHmatch,
+            'pThigh' : in_pThigh
+            }
 
 
-  def count_correct_total(yhat, y):
+def count_correct_total(yhat, y):
     '''
     Definition:
     -----------
@@ -73,13 +122,15 @@ def print_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y
 
 
 def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth):
+    logger = logging.getLogger("in_mjb_window")
     # -- if there was a correct pair and we got it right, how many times does it fall into m_jb? how many times does it not?
     # -- if there was a correct pair and we got it wrong, how many times does it fall into m_jb? how many times does it not?
     # -- if there was no correct pair, how many times does the pair we picked fall into m_jb? how many times does it not?
     # 1. was there a correct pair?
     # correct_present_truth
     # 2. does the bdt agree with the truth label? aka got it right?
-    agree_with_truth = np.array([(np.argmax(yhat_test_ev[ev]) == np.argmax(y_event[ev])) for ev in tqdm(xrange(len(y_event))) ])
+    # agree_with_truth = np.array([(np.argmax(yhat_test_ev[ev]) == np.argmax(y_event[ev])) for ev in tqdm(xrange(len(y_event))) ])
+    agree_with_truth = np.array([(np.argmax(yhat) == np.argmax(y)) for yhat, y in tqdm(izip(yhat_test_ev, y_event))])
     # 3. truly correct present and selected (A)
     correct_truth_correct_BDT = np.array(np.logical_and(correct_present_truth, agree_with_truth))
     # 4. truly correct present but selected other pair (B)
@@ -88,41 +139,46 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
 
     # -- look at mjb for these 3 cases:
     # -- boolean
-    in_mjb = np.array([np.logical_and(mjb_event[ev] < 135, mjb_event[ev] > 95) for ev in tqdm(xrange(len(mjb_event))) ])
+    in_mjb = [np.logical_and(mjb_event[ev] < 135, mjb_event[ev] > 95) for ev in tqdm(xrange(len(mjb_event)))]
 
     # -- weights * boolean
-    weighted_in_mjb = np.array([(w_test[ev] * in_mjb[ev]) for ev in tqdm(xrange(w_test.shape[0]))])
+    weights_in_mjb = np.array([_w * _m for _w, _m in tqdm(izip(w_test, in_mjb))])
 
-    inA = np.array([weighted_in_mjb[correct_truth_correct_BDT][ev][np.argmax(np.array(yhat_test_ev)[correct_truth_correct_BDT][ev])] \
-        for ev in tqdm(xrange(sum(correct_truth_correct_BDT))) ])
+    def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer):
+        sliced_weights = weights_in_mjb[slicer]
+        sliced_yhat = np.array(yhat_test_ev)[slicer]
+        return np.sum(w[np.argmax(y)] for w, y in tqdm(izip(sliced_weights, sliced_yhat)))
+      
+    num_inA = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT) 
+    num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT)
+    num_inC = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, -correct_present_truth)
 
-    inB = np.array([weighted_in_mjb[correct_truth_incorrect_BDT][ev][np.argmax(np.array(yhat_test_ev)[correct_truth_incorrect_BDT][ev])] \
-        for ev in tqdm(xrange(sum(correct_truth_incorrect_BDT))) ])
+    logger.info('Total number of events with a correct pair present and identified = {}'.format(
+        sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))
+        ))
+    logger.info('Of these events, {} fall in m_jb window'.format(num_inA))
+    logger.info('Total number of events with a correct pair present but a different one selected = {}'.format(
+        sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))
+        ))
+    logger.info('Of these events, {} fall in m_jb window'.format(num_inB))
+    logger.info('Total number of events without a correct pair = {}'.format(
+        sum((w * c) for w, c in izip(w_test, -correct_present_truth))
+        ))
+    logger.info('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
+    logger.info('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
 
-    #events without a correct pair, where the pair with the highest bdt output falls in the mjb region
-    inC = np.array([weighted_in_mjb[- correct_present_truth][ev][np.argmax(np.array(yhat_test_ev)[- correct_present_truth][ev])] \
-        for ev in tqdm(xrange(sum(- correct_present_truth))) ])
-  
-    num_inA, num_inB, num_inC = sum(inA), sum(inB), sum(inC)
-    #num_notinA, num_notinB, num_notinC = sum(-inA), sum(-inB), sum(-inC)
-    print 'Total number of events with a correct pair present and identified = {}'.format(sum(
-        [(w_test[ev] * correct_truth_correct_BDT[ev]) for ev in xrange(w_test.shape[0])] ))
-    print 'Of these events, {} fall in m_jb window'.format(num_inA)#, num_notinA)
-    print 'Total number of events with a correct pair present but a different one selected = {}'.format(sum([w_test[ev] * correct_truth_incorrect_BDT[ev] for ev in xrange(w_test.shape[0])]))
-    print 'Of these events, {} fall in m_jb window'.format(num_inB)#, num_notinB)
-    print 'Total number of events without a correct pair = {}'.format(sum([w_test[ev] * (- correct_present_truth)[ev] for ev in xrange(w_test.shape[0])]))
-    print 'Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC)#, num_notinC)
-
+    return num_inA + num_inB + num_inC
 
 if __name__ == '__main__':
-	import sys
-	import argparse
+    import sys
+    import argparse
+    utils.configure_logging()
 
-	parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="Check event level performance")
-	parser.add_argument("pickle_path", type=str,
-                        help="input pickle file path")
-	args = parser.parse_args()
-	sys.exit(main(args.pickle_path))
-
+    parser.add_argument("pickle_paths",
+                        help="list of input pickle file paths", 
+                        type=str, nargs="+", default=[])
+    args = parser.parse_args()
+    sys.exit(main(args.pickle_paths))
 
