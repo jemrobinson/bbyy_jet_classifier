@@ -9,48 +9,93 @@ import cPickle
 import logging
 from itertools import izip
 import numpy as np
+from collections import OrderedDict
 from tabulate import tabulate
 from bbyy_jet_classifier import utils
 
 INMJB_PATH = 'event-level-perf.pkl'
-BKG_NAME = 'Sherpa_photon_jet'
-THRESHOLD = 0.4
+BKG_NAME = 'SM_bkg_photon_jet'#'Sherpa_photon_jet'
+# THRESHOLD = 0.4
 
-def main(pickle_paths):
+def main(pickle_paths, THRESHOLD):
     logger = logging.getLogger("main")
-    
-    try:
-        perf_dict = cPickle.load(open(INMJB_PATH, 'rb'))
-        logger.info('Dictionary found and loaded from ' + INMJB_PATH)
+ 
+    logger.info('Processing data...')
+    perf_dict = {}
+    for path in pickle_paths:
+        logger.info('\nWorking on ' + path)
+        d = cPickle.load(open(path, 'rb'))
+        perf_dict[path.split('/')[0]] = eval_performance(
+                        d['yhat_test_ev'], 
+                        d['yhat_mHmatch_test_ev'], 
+                        d['yhat_pThigh_test_ev'], 
+                        d['y_event'], 
+                        d['mjb_event'], 
+                        d['w_test'], 
+                        THRESHOLD=THRESHOLD
+                        )
 
-    except IOError: # if it doesn't exist, create it
-        logger.info('Dictionary not found in ' + INMJB_PATH + '. Processing data...')
-        perf_dict = {}
-        for path in pickle_paths:
-            logger.info('\nWorking on ' + path)
-            d = cPickle.load(open(path, 'rb'))
-            perf_dict[path.split('/')[0]] = eval_performance(
-                            d['yhat_test_ev'], 
-                            d['yhat_mHmatch_test_ev'], 
-                            d['yhat_pThigh_test_ev'], 
-                            d['y_event'], 
-                            d['mjb_event'], 
-                            d['w_test']
-                            )
-        cPickle.dump(perf_dict, open(INMJB_PATH, 'wb'))
+    # if not parallel_mode:
+    #     cPickle.dump(perf_dict, open(INMJB_PATH, 'wb'))
 
     headers = [path.split('/')[0] for path in pickle_paths if path.split('/')[0] != BKG_NAME]
-    logger.info('Asimov significance per class:\n{}'.format(
-        tabulate([
-            [strategy] +  \
-            [asimov(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy]) 
-                for _class in headers] 
-        for strategy in ['BDT', 'mHmatch', 'pThigh']
-        ],
-        headers=[""] + headers,
-        floatfmt=".8f")
-        )
-    )
+
+    # asimov_dict = {
+    #     strategy : [asimov(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy]) 
+    #     for _class in headers] 
+    #         for strategy in ['BDT', 'mHmatch', 'pThigh']
+    # }
+
+
+    # asimov_dict = {
+    #     strategy : {
+    #         _class: asimov(s, b) for s, b in zip(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy])
+    #         for _class in headers
+    #     } 
+    #     for strategy in ['BDT', 'mHmatch', 'pThigh']
+    # }
+    # logger.info(
+    #     'Asimov significance per class:\n{}'.format(tabulate([
+    #         [strategy] + asimov_dict[strategy]
+    #         for strategy in ['BDT', 'mHmatch', 'pThigh']
+    #     ],
+    #     headers=[""] + headers,
+    #     floatfmt=".8f")
+    #     )
+    # )
+
+    if hasattr(THRESHOLD, '__iter__'):
+        asimov_dict = {
+            _class: {
+                strategy: map(np.array, [THRESHOLD, [asimov(s, b) for s, b in zip(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy])]])
+                for strategy in ['BDT', 'mHmatch', 'pThigh']
+            }
+            for _class in headers
+        }
+
+    else:
+        asimov_dict = {
+            _class: {
+                strategy: map(np.array, [[THRESHOLD], [asimov(s, b) for s, b in zip(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy])]])
+                for strategy in ['BDT', 'mHmatch', 'pThigh']
+            }
+            for _class in headers
+        }
+
+    with open('multi_proc_TMVA.pkl', 'wb') as f:
+            cPickle.dump(asimov_dict, f)
+    
+    # logger.info('Asimov significance per class:\n{}'.format(
+    #     tabulate([
+    #         [strategy] +  \
+    #         [asimov(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy]) 
+    #             for _class in headers] 
+    #     for strategy in ['BDT', 'mHmatch', 'pThigh']
+    #     ],
+    #     headers=[""] + headers,
+    #     floatfmt=".8f")
+    #     )
+    # )
 
 def asimov(s, b):
     '''
@@ -69,7 +114,7 @@ def asimov(s, b):
     return math.sqrt(2 * ((s+b) * math.log(1 + (s/b)) - s))
 
 
-def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event, w_test):
+def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event, w_test, THRESHOLD):
     '''
     Definition:
     -----------
@@ -81,6 +126,7 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
         yhat_pThigh_test_ev: event level numpy array containing the predictions from pThigh for each jet in the event
         y_event: event level numpy array containing the truth labels for each jet in the event
         mjb_event: event level numpy array containing the values of m_jb for each jet in the event
+        THRESHOLD: an integer or iterable of integers
     '''
     logger = logging.getLogger("eval_performance")
     logger.debug('BDT: Number of correctly classified events = {} out of {} events having a correct pair'.format(
@@ -99,9 +145,9 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
     # 1. was there a correct pair?
     correct_present_truth = np.array([sum(ev) == 1 for ev in y_event]) 
     # ^ this is strategy agnostic, can be calculated outside
-    in_BDT =  in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, 'BDT')
-    in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth, 'mHmatch')
-    in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth, 'pThigh')
+    in_BDT =  in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, 'BDT', THRESHOLD)
+    in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth, 'mHmatch', THRESHOLD)
+    in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth, 'pThigh', THRESHOLD)
     return {
             'BDT' : in_BDT,
             'mHmatch' : in_mHmatch,
@@ -130,8 +176,12 @@ def count_correct_total(yhat, y):
     n_correct_truth = sum([sum(y[ev]) == 1 for ev in xrange(len(y))])
     return n_correct_classifier, n_correct_truth
 
+def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer, thresh):
+    sliced_weights = weights_in_mjb[slicer]
+    sliced_yhat = np.array(yhat)[slicer]
+    return np.sum(w[np.argmax(y)] for w, y in izip(sliced_weights, sliced_yhat) if max(y) >= thresh)
 
-def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, strategy):
+def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, strategy, THRESHOLD):
     logger = logging.getLogger("mjb_window - " + strategy)
     # -- if there was a correct pair and we got it right, how many times does it fall into m_jb? how many times does it not?
     # -- if there was a correct pair and we got it wrong, how many times does it fall into m_jb? how many times does it not?
@@ -153,33 +203,48 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
     # -- weights * boolean
     weights_in_mjb = np.array([_w * _m for _w, _m in izip(w_test, in_mjb)])
 
-    def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer):
-        sliced_weights = weights_in_mjb[slicer]
-        sliced_yhat = np.array(yhat_test_ev)[slicer]
-        return np.sum(w[np.argmax(y)] for w, y in izip(sliced_weights, sliced_yhat) if max(y) >= THRESHOLD)
-      
-    num_inA = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT) 
-    num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT)
-    num_inC = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, -correct_present_truth)
+    if hasattr(THRESHOLD, '__iter__'):
 
-    logger.debug('Total number of events with a correct pair present and identified = {}'.format(
-        sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))
-        ))
-    logger.debug('Of these events, {} fall in m_jb window'.format(num_inA))
-    logger.debug('Total number of events with a correct pair present but a different one selected = {}'.format(
-        sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))
-        ))
-    logger.debug('Of these events, {} fall in m_jb window'.format(num_inB))
-    logger.debug('Total number of events without a correct pair = {}'.format(
-        sum((w * c) for w, c in izip(w_test, -correct_present_truth))
-        ))
-    logger.debug('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
-    logger.debug('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
-    return num_inA + num_inB + num_inC
+        # num_inX are lists in this scenario
+        num_inA = Parallel(n_jobs=20, verbose=True)(
+            delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT, thresh) 
+            for thresh in THRESHOLD
+        )
+        num_inB = Parallel(n_jobs=20, verbose=True)(
+            delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT, thresh) 
+            for thresh in THRESHOLD
+        )
+        num_inC = Parallel(n_jobs=20, verbose=True)(
+            delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, -correct_present_truth, thresh) 
+            for thresh in THRESHOLD
+        )
+
+        return np.array([num_inA, num_inB, num_inC]).sum(axis=0)
+
+    else:
+        num_inA = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT, thresh=THRESHOLD) 
+        num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT, thresh=THRESHOLD)
+        num_inC = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, -correct_present_truth, thresh=THRESHOLD)
+
+        logger.debug('Total number of events with a correct pair present and identified = {}'.format(
+            sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))
+            ))
+        logger.debug('Of these events, {} fall in m_jb window'.format(num_inA))
+        logger.debug('Total number of events with a correct pair present but a different one selected = {}'.format(
+            sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))
+            ))
+        logger.debug('Of these events, {} fall in m_jb window'.format(num_inB))
+        logger.debug('Total number of events without a correct pair = {}'.format(
+            sum((w * c) for w, c in izip(w_test, -correct_present_truth))
+            ))
+        logger.debug('Of these events, out of the ones selected by the classifier, {} fall in m_jb window'.format(num_inC))
+        logger.debug('Total number of events in the m_jb window = {}'.format(num_inA + num_inB + num_inC))
+        return [num_inA + num_inB + num_inC]
 
 if __name__ == '__main__':
     import sys
     import argparse
+    from joblib import Parallel, delayed
     utils.configure_logging()
 
     parser = argparse.ArgumentParser(
@@ -188,5 +253,5 @@ if __name__ == '__main__':
                         help="list of input pickle file paths", 
                         type=str, nargs="+", default=[])
     args = parser.parse_args()
-    sys.exit(main(args.pickle_paths))
-
+    #sys.exit(main(args.pickle_paths, 0.4))
+    sys.exit(main(args.pickle_paths, np.linspace(-1, 1, 21)))

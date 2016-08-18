@@ -85,7 +85,9 @@ def load(input_filename, excluded_variables, training_fraction):
     if training_fraction > 0:
         feature_selection(train_data, classification_variables, 5)
 
-    return classification_variables, variable2type, train_data, test_data, yhat_mHmatch_test, yhat_pThigh_test, data_rec['isCorrect'][ix_test], data_rec['m_jb'][ix_test]
+    return classification_variables, variable2type, train_data, test_data, \
+            yhat_mHmatch_test, yhat_pThigh_test, \
+            data_rec['isCorrect'][ix_test], data_rec['m_jb'][ix_test], data_rec['pT_j'][ix_test]
 
 
 def feature_selection(train_data, features, k):

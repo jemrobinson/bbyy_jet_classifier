@@ -36,14 +36,14 @@ class RootTMVA(BaseStrategy):
 
         # Call root_numpy's utility functions to add events from the arrays
         add_classification_events(factory, train_data['X'], train_data['y'], weights=train_data['w'])
-        add_classification_events(factory, train_data['X'][0:50], train_data['y'][0:50], weights=train_data['w'][0:50], test=True)  # need to add some testing events or TMVA will complain
+        add_classification_events(factory, train_data['X'][0:500], train_data['y'][0:500], weights=train_data['w'][0:500], test=True)  # need to add some testing events or TMVA will complain
 
         # The following line is necessary if events have been added individually:
         factory.PrepareTrainingAndTestTree(TCut("1"), "NormMode=EqualNumEvents")
 
         #-- Define methods:
         factory.BookMethod(TMVA.Types.kBDT, "BDT", ":".join(
-            ["NTrees=300", "MinNodeSize=10", "MaxDepth=10", "BoostType=Grad", "SeparationType=GiniIndex"]
+            ["NTrees=800", "MinNodeSize=5", "MaxDepth=15", "BoostType=Grad", "SeparationType=GiniIndex"]
         ))
 
         # -- Where stuff actually happens:

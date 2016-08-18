@@ -72,6 +72,7 @@ if __name__ == "__main__":
     # -- Load in root files and return literally everything about the data
     # y_event will be used to match event-level shape from flattened arrays
     # mjb_event will be used to check if the selected jet pair falls into the mjb mass window
+    # pTj_event will be used to try cutting on the jet pTs 
     classification_variables, \
     variable2type, \
     train_data, \
@@ -79,7 +80,8 @@ if __name__ == "__main__":
     yhat_mHmatch_test, \
     yhat_pThigh_test, \
     y_event, \
-    mjb_event = process_data.load(args.input, args.exclude, args.ftrain)
+    mjb_event, \
+    pTj_event = process_data.load(args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
     utils.ensure_directory(os.path.join(fileID, "classification_variables"))
@@ -206,9 +208,10 @@ if __name__ == "__main__":
                 'yhat_pThigh_test_ev' : yhat_pThigh_test_ev,
                 'y_event' : y_event,
                 'mjb_event' : mjb_event,
+                'pTj_event' : pTj_event,
                 'w_test' : w_test
                 },
-                open(os.path.join(fileID, 'for_event_performance.pkl'), 'wb')
+                open(os.path.join(fileID, 'for_event_performance_' + strategy_name + '.pkl'), 'wb')
                 )
 
         else:
