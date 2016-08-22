@@ -13,7 +13,7 @@ def parse_args():
 
     parser.add_argument("--input", type=str, help="input file name", required=True)
     parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", help="list of variables to exclude", default=[])
-    parser.add_argument("--ftrain", type=float, help="fraction of events to use for training", default=0.7)
+    parser.add_argument("--ftrain", type=float, help="fraction of events to use for training", default=0.6)
     parser.add_argument("--train_location", type=str, help="directory with training info")
     parser.add_argument("--strategy", nargs='+', help="strategy to use. Options are: RootTMVA, sklBDT.", default=["RootTMVA", "sklBDT"])
 
@@ -29,9 +29,8 @@ def check_args(args):
         raise ValueError("ftrain can only be a float between 0.0 and 1.0")
 
     if (args.ftrain == 0) and (args.train_location is None):
-        raise ValueError(
-            "Training folder required when testing on 100% of the input file to specify which classifier to load. \
-             Pass --train_location.")
+        raise ValueError("When testing on 100% of the input file you need to specify which classifier to load. \
+                          Pass the folder containing the classifier to --train_location.")
 
     if (args.ftrain > 0) and (args.train_location is not None):
         raise ValueError("Training location is only a valid argument when ftrain == 0, \
@@ -56,7 +55,8 @@ if __name__ == "__main__":
 
     # -- Set up folder paths
     sample_name = os.path.splitext(os.path.split(args.input)[-1])[0]
-    train_location = args.train_location if args.train_location is not None else sample_name
+    output_location = os.path.join("output", sample_name)
+    train_location = args.train_location if args.train_location is not None else output_location
 
     # -- Load in root files and return literally everything about the data
     # y_event will be used to match event-level shape from flattened arrays
@@ -72,8 +72,9 @@ if __name__ == "__main__":
         pTj_event = process_data.load(args.input, args.exclude, args.ftrain)
 
     #-- Plot input distributions
-    utils.ensure_directory(os.path.join(sample_name, "classification_variables"))
-    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=os.path.join(sample_name, "classification_variables"))
+    classifier_location = os.path.join("output", "classification_variables", sample_name)
+    utils.ensure_directory(classifier_location)
+    plot_inputs.input_distributions(classification_variables, train_data, test_data, directory=classifier_location)
 
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
     for strategy_name in args.strategy:
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         # -- Construct dictionary of available strategies
         if strategy_name not in strategies.__dict__.keys():
             raise AttributeError("{} is not a valid strategy".format(strategy_name))
-        ML_strategy = getattr(strategies, strategy_name)(sample_name)
+        ML_strategy = getattr(strategies, strategy_name)(output_location)
 
         # -- Training!
         if args.ftrain > 0:
@@ -92,7 +93,7 @@ if __name__ == "__main__":
 
             # -- Plot the classifier output as tested on the training set
             # -- (only useful if you care to check the performance on the training set)
-            yhat_train = ML_strategy.test(train_data, classification_variables, process="training", train_location=sample_name)
+            yhat_train = ML_strategy.test(train_data, classification_variables, process="training", train_location=train_location)
             plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 
         else:
@@ -122,8 +123,8 @@ if __name__ == "__main__":
             w_test = np.array([np.unique(w)[0] for w in process_data.match_shape(test_data['w'], y_event)])
             # ^ could also extract it directly from process_data
             yhat_test_ev = process_data.match_shape(yhat_test, y_event)
-            yhat_mHmatch_test_ev = process_data.match_shape(yhat_test["mHmatch"] == 0, y_event)
-            yhat_pThigh_test_ev = process_data.match_shape(yhat_test["pThigh"] == 0, y_event)
+            yhat_mHmatch_test_ev = process_data.match_shape(yhat_test_data["mHmatch"] == 0, y_event)
+            yhat_pThigh_test_ev = process_data.match_shape(yhat_test_data["pThigh"] == 0, y_event)
 
             # -- print performance
             logger.info("Preparing Event-Level Performance")

@@ -5,7 +5,6 @@ from root_numpy import rec2array, root2rec, root2array
 from sklearn.cross_validation import train_test_split
 from sklearn.feature_selection import SelectKBest, f_classif
 
-#TYPE_2_CHAR = {"<i4": "I", "<f8": "D", "<f4": "F"}
 TYPE_2_CHAR = {"int32": "I", "float64": "D", "float32": "F"}
 
 
@@ -86,7 +85,7 @@ def load(input_filename, excluded_variables, training_fraction):
     if training_fraction > 0:
         feature_selection(train_data, classification_variables, 5)
 
-    return classification_variables, variable2type, train_data, test_data, yhat_test_data \
+    return classification_variables, variable2type, train_data, test_data, yhat_test_data, \
         data_rec["isCorrect"][ix_test], data_rec["m_jb"][ix_test], data_rec["pT_j"][ix_test]
 
 
@@ -157,11 +156,6 @@ def match_shape(arr, ref):
     shape = [len(a) for a in ref]
     if len(arr) != np.sum(shape):
         raise ValueError("Incompatible shapes: len(arr) = {}, total elements in ref: {}".format(len(arr), np.sum(shape)))
-#     reorganized = []
-#     ptr = 0
-#     for nobj in shape:
-#         reorganized.append(twoclass_output[ptr:(ptr + nobj)].astype("float32").tolist())
-#         ptr += nobj
     return [arr[ptr:(ptr + nobj)].tolist() for (ptr, nobj) in zip(np.cumsum([0] + shape[:-1]), shape)]
 
 

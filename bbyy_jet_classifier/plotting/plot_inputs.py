@@ -48,10 +48,10 @@ def input_distributions(classification_variables, training_data, test_data, dire
             # -- Plot test data if available --> test data may not have a correct category?
             X_test_correct = test_data['X'][test_data['y'] == 1][:, i]
             X_test_incorrect = test_data['X'][test_data['y'] == 0][:, i]
+            y_values, _, _ = plt.hist(X_test_incorrect, bins=bins, weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])), histtype="stepfilled", label="Incorrect (test)", color="red", alpha=0.5)
             if X_test_correct.size > 0:
-                y_1, _, _ = plt.hist(X_test_correct, bins=bins, weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])), histtype="stepfilled", label="Correct (test)", color="blue", alpha=0.5)
-            y_2, _, _ = plt.hist(X_test_incorrect, bins=bins, weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])), histtype="stepfilled", label="Incorrect (test)", color="red", alpha=0.5)
-
+                _y, _, _ = plt.hist(X_test_correct, bins=bins, weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])), histtype="stepfilled", label="Correct (test)", color="blue", alpha=0.5)
+                y_values += _y
             # -- Plot training data --> certainly available, otherwise we would be in the `except`
             X_train_correct = training_data['X'][training_data['y'] == 1][:, i]
             X_train_incorrect = training_data['X'][training_data['y'] == 0][:, i]
@@ -63,18 +63,19 @@ def input_distributions(classification_variables, training_data, test_data, dire
         except (IndexError, ValueError):
             non_empty = training_data if len(training_data['y']) > 0 else test_data
             bins = np.linspace(min(non_empty['X'][:, i]), max(non_empty['X'][:, i]), 50)
+            y_values, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
             try:
-                y_correct, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+                _y, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+                y_values += _y
             except ValueError:  # when running on bkg only, we don't have any correct pairs!
-                y_correct = []
-            y_incorrect, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+                pass
 
         # -- Plot legend/axes/etc.
         plt.legend(loc="upper right", fontsize=15)
         plt.xlabel(ROOT_2_LATEX[variable])
         plt.ylabel("Fraction of events")
         axes.set_xlim(min(bins), max(bins))
-        axes.set_ylim([min(y_correct + y_incorrect), max(y_correct + y_incorrect))
+        axes.set_ylim(min(y_values), max(y_values))
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory

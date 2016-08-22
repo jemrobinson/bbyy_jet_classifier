@@ -51,8 +51,21 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}.pdf".format(old_strategy_name)))
 
 
-def confusion(ML_strategy, yhat, data, model_name):
+def confusion(ML_strategy, yhat, data, model_name, sample_name):
     """
+        Definition:
+        -----------
+                Plots the 2D confusion matrix
+
+        Args:
+        -----
+                ML_strategy = one of the machine learning strategy in strategies/ whose prerformance we want to visualize
+                yhat = the array of predictions
+                data = dictionary, containing 'y', 'w' for the set to evaluate performance on, where:
+                    y = array of dim (# examples) with target values
+                    w = array of dim (# examples) with event weights
+                model_name = string, either "BDT", "mHmatch" or "pTmatch"
+                sample_name = arbitrary string that refers back to the input file, usually
     """
     y_test = data['y']
     plt.clf()
@@ -74,7 +87,7 @@ def confusion(ML_strategy, yhat, data, model_name):
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
-    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "confusion_{}.pdf".format(model_name)))
+    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "confusion_{}_{}.pdf".format(model_name, sample_name)))
     plt.close(figure)
 
 
