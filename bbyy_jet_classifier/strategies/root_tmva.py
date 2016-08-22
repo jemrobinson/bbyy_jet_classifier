@@ -2,16 +2,16 @@ import array
 import logging
 import os
 import shutil
-from . import BaseStrategy
 from ROOT import TCut, TFile, TMVA
 from root_numpy.tmva import add_classification_events, evaluate_reader
+from . import BaseStrategy
 
 
 class RootTMVA(BaseStrategy):
     """
     Strategy using a BDT from ROOT TMVA
     """
-    default_output_subdir = "RootTMVA"  # os.path.join("output", "RootTMVA")
+    default_output_subdir = "RootTMVA"
 
     def train(self, train_data, classification_variables, variable_dict):
         """

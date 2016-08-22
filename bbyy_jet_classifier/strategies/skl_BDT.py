@@ -1,11 +1,10 @@
 import cPickle
 import logging
 import os
-from . import BaseStrategy
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
-from sklearn.grid_search import GridSearchCV
+from . import BaseStrategy
 from ..utils import ensure_directory
 
 
@@ -13,7 +12,7 @@ class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_subdir = "sklBDT"  # os.path.join("output", "sklBDT")
+    default_output_subdir = "sklBDT"
 
     def train(self, train_data, classification_variables, variable_dict):
         """
@@ -32,23 +31,6 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
-
-        # param_grid = {
-        #    'n_estimators' : [50, 100, 200, 300], 
-        #    'min_samples_split' : [2, 5],
-        #    'max_depth': [3, 5, 7, 10]
-        # }
-
-        # fit_params = {
-        #     'sample_weight' : train_data['w']
-        # }
-        # metaclassifier = GridSearchCV(GradientBoostingClassifier(), param_grid=param_grid, fit_params=fit_params, 
-        #     #scoring=event_accuracy, TO BE IMPLEMENTED! 
-        #     cv=2, n_jobs=4, verbose=1)
-        # metaclassifier.fit(train_data['X'], train_data['y'])
-        # classifier = metaclassifier.best_estimator_
-        # print metaclassifier.best_params_
-
         classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
 
@@ -70,7 +52,7 @@ class sklBDT(BaseStrategy):
                 w = array of dim (# examples) with event weights
             process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
-            train_location = string that specifies the fileID of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh') 
+            train_location = string that specifies the file name of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh')
 
         Returns:
         --------
@@ -80,7 +62,7 @@ class sklBDT(BaseStrategy):
 
         # -- Load scikit classifier
         classifier = joblib.load(os.path.join(train_location, self.default_output_subdir, 'pickle', 'sklBDT_clf.pkl'))
-        
+
         # -- Get classifier predictions
         yhat = classifier.predict_proba(data['X'])[:, 1]
 

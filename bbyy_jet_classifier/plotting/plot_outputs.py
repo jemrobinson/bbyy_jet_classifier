@@ -7,6 +7,7 @@ import plot_atlas
 from sklearn.metrics import confusion_matrix
 from ..utils import ensure_directory
 
+
 def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     """
     Definition:
@@ -35,7 +36,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     try:
         plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])),
                  bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-    except ValueError: # for Sherpa y+jets
+    except ValueError:  # for Sherpa y+jets
         pass
     plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])),
              bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
@@ -49,14 +50,15 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
     plot_atlas.use_atlas_labels(axes)
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}.pdf".format(old_strategy_name)))
 
+
 def confusion(ML_strategy, yhat, data, model_name):
-    '''
-    '''
-    
+    """
+    """
     y_test = data['y']
     plt.clf()
-    fig = plt.figure(figsize=(11.69, 10.27), dpi=100)
+    figure = plt.figure(figsize=(11.69, 10.27), dpi=100)
     matplotlib.rcParams.update({'font.size': 10})
+
     def _plot_confusion_matrix(cm, title='Confusion Matrix', cmap=plt.cm.RdPu):
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
@@ -69,15 +71,14 @@ def confusion(ML_strategy, yhat, data, model_name):
         plt.tight_layout()
 
     cm = confusion_matrix(y_test, yhat)
-    # Normalize the confusion matrix by row (i.e by the number of samples
-    # in each class)
+    # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
     plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "confusion_{}.pdf".format(model_name)))
-    #plt.close(fig)
+    plt.close(figure)
 
 
-def classifier_output(ML_strategy, yhat, data, process, fileID):
+def classifier_output(ML_strategy, yhat, data, process, sample_name):
     """
     Definition:
     -----------
@@ -91,7 +92,7 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
             process = string, either "training" or "testing", usually
-            fileID = arbitrary string that refers back to the input file, usually
+            sample_name = arbitrary string that refers back to the input file, usually
     """
     # -- Ensure output directory exists
     ensure_directory(os.path.join(ML_strategy.output_directory, process))
@@ -106,7 +107,7 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
     # -- Plot data
     try:
         plt.hist(yhat[data['y'] == 1], weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-    except ValueError: # for Sherpa y+jets
+    except ValueError:  # for Sherpa y+jets
         pass
     plt.hist(yhat[data['y'] == 0], weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
@@ -117,5 +118,5 @@ def classifier_output(ML_strategy, yhat, data, process, fileID):
     plot_atlas.use_atlas_labels(axes)
 
     # -- Write figure and close plot to save memory
-    figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(fileID)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(sample_name)))
     plt.close(figure)

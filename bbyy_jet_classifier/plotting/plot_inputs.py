@@ -1,23 +1,20 @@
 import logging
+import os
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import plot_atlas
 
 ROOT_2_LATEX = {
-    "abs_eta_j": r"$|\eta_{j}|$", 
+    "abs_eta_j": r"$|\eta_{j}|$",
     "abs_eta_jb": r"$|\eta_{jb}|$",
-    "Delta_eta_jb": r"$\Delta\eta_{jb}$", 
+    "Delta_eta_jb": r"$\Delta\eta_{jb}$",
     "Delta_phi_jb": r"$\Delta\phi_{jb}$",
-    "idx_by_mH": r"$m_{H}$ matching order", 
+    "idx_by_mH": r"$m_{H}$ matching order",
     "idx_by_pT": r"$p_{T}$ order",
-    "m_jb": r"$m_{jb}$", 
-    "pT_j": r"$p_{T}^{j}$", 
+    "m_jb": r"$m_{jb}$",
+    "pT_j": r"$p_{T}^{j}$",
     "pT_jb": r"$p_{T}^{jb}$",
-    "MV2c20_FCBE_70": r"MV2c20 FCBE(70%)", 
-    "MV2c20_FCBE_77": r"MV2c20 FCBE(77%)",
-    "MV2c20_FCBE_85": r"MV2c20 FCBE(85%)" 
-    }
+}
 
 
 def input_distributions(classification_variables, training_data, test_data, directory):
@@ -44,7 +41,7 @@ def input_distributions(classification_variables, training_data, test_data, dire
         # -- Initialise figure and axes
         figure = plt.figure(figsize=(6, 6), dpi=100)
         axes = plt.axes()
-        try: # try to see if both training and testing data are available
+        try:  # try to see if both training and testing data are available
             bins = np.linspace(min([min(training_data['X'][:, i]), min(test_data['X'][:, i])]), max([max(training_data['X'][:, i]), max(test_data['X'][:, i])]), 50)
             bin_centres = np.array([0.5 * (l + h) for l, h in zip(bins[:-1], bins[1:])])
 
@@ -67,22 +64,17 @@ def input_distributions(classification_variables, training_data, test_data, dire
             non_empty = training_data if len(training_data['y']) > 0 else test_data
             bins = np.linspace(min(non_empty['X'][:, i]), max(non_empty['X'][:, i]), 50)
             try:
-                y_1, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, 
-                    weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), 
-                    histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
-            except ValueError: # when running on bkg only, we don't have any correct pairs!
-                pass
-
-            y_2, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, 
-                weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), 
-                histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+                y_correct, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 1][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 1] / float(sum(non_empty['w'][non_empty['y'] == 1])), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+            except ValueError:  # when running on bkg only, we don't have any correct pairs!
+                y_correct = []
+            y_incorrect, _, _ = plt.hist(non_empty['X'][non_empty['y'] == 0][:, i], bins=bins, weights=non_empty['w'][non_empty['y'] == 0] / float(sum(non_empty['w'][non_empty['y'] == 0])), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
 
         # -- Plot legend/axes/etc.
         plt.legend(loc="upper right", fontsize=15)
         plt.xlabel(ROOT_2_LATEX[variable])
         plt.ylabel("Fraction of events")
         axes.set_xlim(min(bins), max(bins))
-        #axes.set_ylim([0, max([1e-10, max(y_1 + y_2)])]) # ???
+        axes.set_ylim([min(y_correct + y_incorrect), max(y_correct + y_incorrect))
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory
