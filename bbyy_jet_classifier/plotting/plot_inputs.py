@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import plot_atlas
+from .. import utils
 
 ROOT_2_LATEX = {
     "abs_eta_j": r"$|\eta_{j}|$",
@@ -17,7 +18,7 @@ ROOT_2_LATEX = {
 }
 
 
-def input_distributions(classification_variables, training_data, test_data, directory):
+def input_distributions(classification_variables, training_data, test_data, plot_directory):
     """
     Definition:
     -----------
@@ -79,5 +80,6 @@ def input_distributions(classification_variables, training_data, test_data, dire
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory
-        figure.savefig(os.path.join(directory, "{}.pdf".format(variable)))
+        utils.ensure_directory(plot_directory)
+        figure.savefig(os.path.join(plot_directory, "{}.pdf".format(variable)))
         plt.close(figure)

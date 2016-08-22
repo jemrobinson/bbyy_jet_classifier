@@ -46,8 +46,14 @@ def load(input_filename, excluded_variables, training_fraction):
     # -- variables used as inputs to the classifier
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
+    # -- reduce to 10000 events for testing
+    data_rec = data_rec[np.random.randint(data_rec.shape[0], size=10000)]
+
     # -- throw away events with no jet pairs
+    logging.getLogger("process_data.load").info("Found {} events".format(data_rec.size))
     data_rec = data_rec[np.array([len(data_rec["isCorrect"][ev]) > 0 for ev in xrange(data_rec.shape[0])])]
+    logging.getLogger("process_data.load").info("... of which {} remain after rejecting empty events".format(data_rec.size))
+
     # -- slice rec array to only contain input features
     X = data_rec[classification_variables]
     y = data_rec["isCorrect"]

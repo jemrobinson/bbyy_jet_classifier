@@ -22,7 +22,7 @@ class sklBDT(BaseStrategy):
 
         Args:
         -----
-            train_data = dictionary, containing 'X', 'y', 'w' for the training set, where:
+            train_data = dictionary, containing "X", "y", "w" for the training set, where:
                 X = ndarray of dim (# training examples, # features)
                 y = array of dim (# training examples) with target values
                 w = array of dim (# training examples) with event weights
@@ -32,13 +32,13 @@ class sklBDT(BaseStrategy):
         # -- Train:
         logging.getLogger("sklBDT.train").info("Training...")
         classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
-        classifier.fit(train_data['X'], train_data['y'], sample_weight=train_data['w'])
+        classifier.fit(train_data["X"], train_data["y"], sample_weight=train_data["w"])
 
         # -- Dump output to pickle
         ensure_directory(os.path.join(self.output_directory, "pickle"))
         joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
-    def test(self, data, classification_variables, process, train_location):
+    def test(self, data, classification_variables, process, sample_name):
         """
         Definition:
         -----------
@@ -46,13 +46,13 @@ class sklBDT(BaseStrategy):
 
         Args:
         -----
-            data = dictionary, containing 'X', 'y', 'w' for the set to evaluate performance on, where:
+            data = dictionary, containing "X", "y", "w" for the set to evaluate performance on, where:
                 X = ndarray of dim (# examples, # features)
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
             process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
-            train_location = string that specifies the file name of the sample to use as a training (e.g. 'SM_merged' or 'X350_hh')
+            train_location = string that specifies the file name of the sample to use as a training (e.g. "SM_merged" or "X350_hh")
 
         Returns:
         --------
@@ -61,14 +61,14 @@ class sklBDT(BaseStrategy):
         logging.getLogger("sklBDT.test").info("Evaluating performance...")
 
         # -- Load scikit classifier
-        classifier = joblib.load(os.path.join(train_location, self.default_output_subdir, 'pickle', 'sklBDT_clf.pkl'))
+        classifier = joblib.load(os.path.join(self.training_location(sample_name), "pickle", "sklBDT_clf.pkl"))
 
         # -- Get classifier predictions
-        yhat = classifier.predict_proba(data['X'])[:, 1]
+        yhat = classifier.predict_proba(data["X"])[:, 1]
 
         # -- Log classification scores
-        logging.getLogger("sklBDT.test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(data['X'], data['y'], sample_weight=data['w'])))
-        for output_line in classification_report(data['y'], classifier.predict(data['X']), target_names=["correct", "incorrect"], sample_weight=data['w']).splitlines():
+        logging.getLogger("sklBDT.test").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(data["X"], data["y"], sample_weight=data["w"])))
+        for output_line in classification_report(data["y"], classifier.predict(data["X"]), target_names=["correct", "incorrect"], sample_weight=data["w"]).splitlines():
             logging.getLogger("sklBDT.test").info(output_line)
 
         return yhat

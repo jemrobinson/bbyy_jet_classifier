@@ -56,7 +56,7 @@ class RootTMVA(BaseStrategy):
             shutil.rmtree(os.path.join(self.output_directory, "weights"))
         shutil.move("weights", self.output_directory)
 
-    def test(self, data, classification_variables, process, train_location):
+    def test(self, data, classification_variables, process, sample_name):
         """
         Definition:
         -----------
@@ -83,7 +83,7 @@ class RootTMVA(BaseStrategy):
             reader.AddVariable(v_name, array.array("f", [0]))
 
         # -- Load TMVA results
-        reader.BookMVA("BDT", os.path.join(train_location, self.default_output_subdir, "weights", "TMVAClassification_BDT.weights.xml"))
+        reader.BookMVA("BDT", os.path.join(self.training_location(sample_name), "weights", "TMVAClassification_BDT.weights.xml"))
 
         yhat = evaluate_reader(reader, "BDT", data['X'])
         return yhat

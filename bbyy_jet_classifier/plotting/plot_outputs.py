@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix
 from ..utils import ensure_directory
 
 
-def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
+def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_name):
     """
     Definition:
     -----------
@@ -48,7 +48,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name):
 
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
-    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}.pdf".format(old_strategy_name)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}.pdf".format(old_strategy_name, sample_name)))
 
 
 def confusion(ML_strategy, yhat, data, model_name, sample_name):

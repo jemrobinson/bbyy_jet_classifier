@@ -1,28 +1,23 @@
-"""
-run:
-python evaluate_event_performance.py hh_yybb/for_event_performance.pkl \
-X275_hh/for_event_performance.pkl X300_hh/for_event_performance.pkl \
-X325_hh/for_event_performance.pkl X350_hh/for_event_performance.pkl \
-X400_hh/for_event_performance.pkl Sherpa_photon_jet/for_event_performance.pkl
-"""
+#! /usr/bin/env python
 import cPickle
+import glob
 import logging
+import os
 from itertools import izip
 from joblib import Parallel, delayed
 import numpy as np
 from bbyy_jet_classifier import utils
 
-INMJB_PATH = "event-level-perf.pkl"
 BKG_NAME = "SM_bkg_photon_jet"
 
-
 def main(pickle_paths, THRESHOLD):
-    logger = logging.getLogger("main")
+    logger = logging.getLogger("event_performance.main")
 
     logger.info("Processing data...")
     perf_dict = {}
     for path in pickle_paths:
-        logger.info("\nWorking on " + path)
+        logger.info("Working on: ")
+        logger.info(path)
         d = cPickle.load(open(path, "rb"))
         perf_dict[path.split("/")[0]] = eval_performance(
             d["yhat_test_ev"],
@@ -34,7 +29,7 @@ def main(pickle_paths, THRESHOLD):
             THRESHOLD=THRESHOLD
         )
 
-    headers = [path.split("/")[0] for path in pickle_paths if path.split("/")[0] != BKG_NAME]
+    headers = [path.split("/")[2] for path in pickle_paths if path.split("/")[2] != BKG_NAME]
 
     if hasattr(THRESHOLD, "__iter__"):
         asimov_dict = {
@@ -189,6 +184,8 @@ if __name__ == "__main__":
     utils.configure_logging()
 
     parser = argparse.ArgumentParser(description="Check event level performance")
-    parser.add_argument("pickle_paths", help="list of input pickle file paths", type=str, nargs="+", default=[])
+    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: RootTMVA, sklBDT.", default="sklBDT")
+    parser.add_argument("sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
     args = parser.parse_args()
-    sys.exit(main(args.pickle_paths, np.linspace(-1, 1, 21)))
+    pickle_paths = sum([glob.glob(os.path.join("output", args.strategy, sample_name, "event_performance_dump.pkl")) for sample_name in args.sample_names], [])
+    sys.exit(main(pickle_paths, np.linspace(-1, 1, 21)))
