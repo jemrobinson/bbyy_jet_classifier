@@ -27,7 +27,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing"))
 
     # -- Initialise figure and axes
-    logging.getLogger("plotting.old_strategy").info("Plotting old strategy: {} for testing sample".format(old_strategy_name))
+    logging.getLogger("plot_outputs").info("Plotting old strategy: {} for testing sample".format(old_strategy_name))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
@@ -111,7 +111,7 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     ensure_directory(os.path.join(ML_strategy.output_directory, process))
 
     # -- Initialise figure, axes and binning
-    logging.getLogger("plotting.classifier_output").info("Plotting classifier output for {} sample".format(process))
+    logging.getLogger("plot_outputs").info("Plotting classifier output for {} sample".format(process))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()

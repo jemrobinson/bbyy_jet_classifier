@@ -10,6 +10,7 @@ from bbyy_jet_classifier import utils
 
 BKG_NAME = "SM_bkg_photon_jet"
 
+
 def main(pickle_paths, THRESHOLD):
     logger = logging.getLogger("event_performance.main")
 

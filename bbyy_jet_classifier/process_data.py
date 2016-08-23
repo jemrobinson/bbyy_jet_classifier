@@ -1,15 +1,15 @@
 from collections import OrderedDict
 import logging
 import numpy as np
-from numpy.lib.recfunctions import stack_arrays, merge_arrays
-from root_numpy import rec2array, root2rec, root2array
+from numpy.lib.recfunctions import stack_arrays
+from root_numpy import root2array
 from sklearn.cross_validation import train_test_split
 from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"int32": "I", "float64": "D", "float32": "F"}
 
 
-def load(input_filename, excluded_variables, training_fraction):
+def load(input_filename, excluded_variables, training_fraction, max_events):
     """
     Definition:
     -----------
@@ -33,16 +33,18 @@ def load(input_filename, excluded_variables, training_fraction):
                 X = ndarray of dim (# testing examples, # features)
                 y = array of dim (# testing examples) with target values
                 w = array of dim (# testing examples) with event weights
-            yhat_test_data = dictionary, containing "mHmatch", "pThigh" for the test set, where
+            yhat_old_test_data = dictionary, containing "mHmatch", "pThigh" for the test set, where
                 mHmatch = array of dim (# testing examples) with output of binary decision based on jet pair with closest m_jb to 125GeV
                 pThigh  = array of dim (# testing examples) with output of binary decision based on jet with highest pT
-            y_event   = event-level array with "truth" decision about this pairing
-            mjb_event = event-level array with mass of jb pair
-            pTj_event = event-level array with pT of jet
+            test_events_data = dictionary, containing "y", "mjb", "pTj" for events in the test set, where
+                y    = array of "truth" decisions for each jet
+                m_jb = array of mjb for each jet (paired with the tagged jet)
+                pT_j = array of pTj for each jet
+                w    = array of event weights
     """
-    logging.getLogger("process_data.load").info("Loading input from ROOT files")
+    logging.getLogger("process_data").info("Loading input from ROOT file: {}".format(input_filename))
     for v_name in excluded_variables:
-        logging.getLogger("process_data.load").info("... excluding variable {}".format(v_name))
+        logging.getLogger("process_data").info("... excluding variable {}".format(v_name))
     # -- import all root files into data_rec
     data_rec = root2array(input_filename, "events_1tag")
     # -- ordered dictionary of branches and their type
@@ -51,18 +53,20 @@ def load(input_filename, excluded_variables, training_fraction):
     # -- variables used as inputs to the classifier
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
-    # -- reduce to 10000 events for testing
-    data_rec = data_rec[np.random.randint(data_rec.shape[0], size=3)]
+    # -- only use max_events events
+    if max_events > 0 :
+        data_rec = data_rec[np.random.randint(data_rec.shape[0], size=max_events)]
 
     # -- throw away events with no jet pairs
-    logging.getLogger("process_data.load").info("Found {} events".format(data_rec.size))
+    logging.getLogger("process_data").info("Found {} events".format(data_rec.size))
     data_rec = data_rec[np.array([len(data_rec["isCorrect"][ev]) > 0 for ev in xrange(data_rec.shape[0])])]
-    logging.getLogger("process_data.load").info("... of which {} remain after rejecting empty events".format(data_rec.size))
+    logging.getLogger("process_data").info("... of which {} remain after rejecting empty events".format(data_rec.size))
 
     # -- slice rec array to only contain input features
     X = data_rec[classification_variables]
     y = data_rec["isCorrect"]
-    # weights can be positive or negative at NLO
+    # -- NB. weights can be positive or negative at NLO
+    #    convert one weight per event to one weight per jet
     w = [[data_rec["event_weight"][ev]] * len(data_rec["isCorrect"][ev]) for ev in xrange(data_rec.shape[0])]
     yhat_mHmatch = data_rec["idx_by_mH"]
     yhat_pThigh = data_rec["idx_by_pT"]
@@ -71,11 +75,11 @@ def load(input_filename, excluded_variables, training_fraction):
     # -- Construct training and test datasets, automatically permuted
     if training_fraction == 1:
         # -- Can't pass `train_size=1`, but can use `test_size=0`
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, ix_train, ix_test = \
+        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, _, ix_test = \
             train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, test_size=0)
 
     else:
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, ix_train, ix_test = \
+        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, _, ix_test = \
             train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, train_size=training_fraction)
 
     # -- go from event-flat to jet-flat
@@ -90,14 +94,19 @@ def load(input_filename, excluded_variables, training_fraction):
     # -- Put X, y and w into a dictionary to conveniently pass these objects around
     train_data = {"X": X_train, "y": y_train, "w": w_train}
     test_data = {"X": X_test, "y": y_test, "w": w_test}
-    yhat_test_data = {"mHmatch": yhat_mHmatch_test, "pThigh": yhat_pThigh_test}
+    yhat_old_test_data = {"mHmatch": yhat_mHmatch_test, "pThigh": yhat_pThigh_test}
+
+    # -- Do the same for the event-level arrays
+    test_events_data = {"y": data_rec["isCorrect"][ix_test],
+                        "m_jb": data_rec["m_jb"][ix_test],
+                        "pT_j": data_rec["pT_j"][ix_test],
+                        "w": data_rec["event_weight"][ix_test]}
 
     # -- ANOVA for feature selection (please, know what you're doing)
     if training_fraction > 0:
         feature_selection(train_data, classification_variables, 5)
 
-    return classification_variables, variable2type, train_data, test_data, yhat_test_data, \
-        data_rec["isCorrect"][ix_test], data_rec["m_jb"][ix_test], data_rec["pT_j"][ix_test]
+    return classification_variables, variable2type, train_data, test_data, yhat_old_test_data, test_events_data
 
 
 def feature_selection(train_data, features, k):
@@ -118,10 +127,10 @@ def feature_selection(train_data, features, k):
 
     # -- Select the k top features, as ranked using ANOVA F-score
     tf = SelectKBest(score_func=f_classif, k=k)
-    Xt = tf.fit_transform(train_data["X"], train_data["y"])
+    tf.fit_transform(train_data["X"], train_data["y"])
 
     # -- Return names of top features
-    logging.getLogger("RunClassifier").info("The {} most important features are {}".format(k, [f for (_, f) in sorted(zip(tf.scores_, features), reverse=True)][:k]))
+    logging.getLogger("process_data").info("The {} most important features are {}".format(k, [f for (_, f) in sorted(zip(tf.scores_, features), reverse=True)][:k]))
 
 
 def balance_weights(y_train, w_train, targetN=10000):
@@ -166,21 +175,21 @@ def combine_datasets(dataset_list):
         dictionary of the form {"X":data, "y":recarray, "w":recarray} containing all input information
     """
     # -- y and w are 1D arrays which are simple to combine
-    y_combined = stack_arrays( [dataset["y"] for dataset in dataset_list], asrecarray=True, usemask=False)
-    w_combined = stack_arrays( [dataset["w"] for dataset in dataset_list], asrecarray=True, usemask=False)
+    y_combined = stack_arrays([dataset["y"] for dataset in dataset_list], asrecarray=True, usemask=False)
+    w_combined = stack_arrays([dataset["w"] for dataset in dataset_list], asrecarray=True, usemask=False)
 
     # print dataset_list[0]["X"].dtype
 
     # -- Construct the desired output shape using the known size of y_combined
     #    Necessary shape is (N_elements, N_categories)
-    X_shape = ( y_combined.shape[0], dataset_list[0]["X"].shape[1] )
+    X_shape = (y_combined.shape[0], dataset_list[0]["X"].shape[1])
 
     # -- Stack X arrays and then reshape
-    X_combined = stack_arrays( [dataset["X"] for dataset in dataset_list], asrecarray=True, usemask=False)
+    X_combined = stack_arrays([dataset["X"] for dataset in dataset_list], asrecarray=True, usemask=False)
     X_combined.resize(X_shape)
 
     # -- Recombine into a dictionary and return
-    return {"X":X_combined, "y":y_combined, "w":w_combined}
+    return {"X": X_combined, "y": y_combined, "w": w_combined}
 
 
 def match_shape(arr, ref):

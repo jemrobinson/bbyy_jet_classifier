@@ -47,11 +47,11 @@ class RootTMVA(BaseStrategy):
         ))
 
         # -- Where stuff actually happens:
-        logging.getLogger("RootTMVA.train").info("Train all methods")
+        logging.getLogger("root_tmva").info("Train all methods")
         factory.TrainAllMethods()
 
         # -- Organize output:
-        logging.getLogger("RootTMVA.train").info("Organising output")
+        logging.getLogger("root_tmva").info("Organising output")
         if os.path.isdir(os.path.join(self.output_directory, "weights")):
             shutil.rmtree(os.path.join(self.output_directory, "weights"))
         shutil.move("weights", self.output_directory)
@@ -74,10 +74,10 @@ class RootTMVA(BaseStrategy):
         --------
             yhat = the array of BDT outputs, of dimensions (n_events)
         """
-        logging.getLogger("RootTMVA.test").info("Evaluating performance...")
+        logging.getLogger("root_tmva").info("Evaluating performance...")
 
         # -- Construct reader and add variables to it:
-        logging.getLogger("RootTMVA.test").info("Construct TMVA reader and add variables to it")
+        logging.getLogger("root_tmva").info("Construct TMVA reader and add variables to it")
         reader = TMVA.Reader()
         for v_name in classification_variables:
             reader.AddVariable(v_name, array.array("f", [0]))

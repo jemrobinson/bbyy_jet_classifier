@@ -1,7 +1,7 @@
+import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import rootpy.plotting as rpp
-
 
 def set_style():
     """
@@ -14,6 +14,7 @@ def set_style():
     -----------
             None
     """
+    logging.getLogger("plot_atlas").info("Setting ATLAS style")
     rpp.set_style("ATLAS", mpl=True)
     mpl.rcParams["figure.figsize"] = (6, 6)
     # Force Helvetica in mathmode
@@ -29,7 +30,7 @@ def set_style():
     set_style.func_code = (lambda: None).func_code
 
 
-def use_atlas_labels(ax, lumi=1.04):
+def use_atlas_labels(ax, lumi=40.0):
     """
     Definition:
     -----------
