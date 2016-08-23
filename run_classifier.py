@@ -7,15 +7,14 @@ from bbyy_jet_classifier import strategies, process_data, utils
 from bbyy_jet_classifier.plotting import plot_inputs, plot_outputs, plot_roc
 import numpy as np
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Run ML algorithms over ROOT TTree input")
 
-    parser.add_argument("--input", type=str, help="input file name", required=True)
-    parser.add_argument("--exclude", type=str, metavar="VARIABLE_NAME", nargs="+", help="list of variables to exclude", default=[])
-    parser.add_argument("--ftrain", type=float, help="fraction of events to use for training", default=0.6)
+    parser.add_argument("--input", required=True, type=str, nargs="+", help="input file names")
+    parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", help="list of variables to exclude")
+    parser.add_argument("--ftrain", type=float, default=0.6, help="fraction of events to use for training")
     parser.add_argument("--training_sample", type=str, help="directory with training info")
-    parser.add_argument("--strategy", nargs="+", help="strategy to use. Options are: RootTMVA, sklBDT.", default=["RootTMVA", "sklBDT"])
+    parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], help="strategy to use. Options are: RootTMVA, sklBDT.")
 
     args = parser.parse_args()
     return args
@@ -46,30 +45,39 @@ if __name__ == "__main__":
     args = parse_args()
     check_args(args)
 
+    # -- Construct list of input samples and dictionaries of sample -> data
+    input_samples, training_data, test_data, yhat_test_data = [], {}, {}, {}
+
     # -- Check that input file exists
-    if not os.path.isfile(args.input):
-        raise OSError("{} does not exist!".format(args.input))
+    logger.info("Preparing to run over {} input samples".format(len(args.input)))
+    for input_file_name in args.input:
+        logger.info("Now considering input: {}".format(input_file_name))
+        if not os.path.isfile(input_file_name):
+            raise OSError("{} does not exist!".format(args.input))
 
-    # -- Set up folder paths
-    input_sample = os.path.splitext(os.path.split(args.input)[-1])[0]
-    training_sample = args.training_sample if args.training_sample is not None else input_sample
+        # -- Set up folder paths
+        input_samples.append(os.path.splitext(os.path.split(input_file_name)[-1])[0])
 
-    # -- Load in root files and return literally everything about the data
-    # y_event will be used to match event-level shape from flattened arrays
-    # mjb_event will be used to check if the selected jet pair falls into the mjb mass window
-    # pTj_event will be used to try cutting on the jet pTs
-    classification_variables, \
-        variable2type, \
-        train_data, \
-        test_data, \
-        yhat_test_data, \
-        y_event, \
-        mjb_event, \
-        pTj_event = process_data.load(args.input, args.exclude, args.ftrain)
+        # -- Load in root files and return literally everything about the data
+        # y_event will be used to match event-level shape from flattened arrays
+        # mjb_event will be used to check if the selected jet pair falls into the mjb mass window
+        # pTj_event will be used to try cutting on the jet pTs
+        classification_variables, variable2type, \
+            training_data[input_samples[-1]], \
+            testing_data[input_samples[-1]], \
+            yhat_test_data[input_samples[-1]], \
+            y_event, \
+            mjb_event, \
+            pTj_event = process_data.load(input_file_name, args.exclude, args.ftrain)
 
-    #-- Plot input distributions
-    plot_inputs.input_distributions(classification_variables, train_data, test_data,
-                                    plot_directory=os.path.join("output", "classification_variables", input_sample))
+        #-- Plot input distributions
+        plot_inputs.input_distributions(classification_variables, training_data[input_samples[-1]], testing_data[input_samples[-1]],
+                                        plot_directory=os.path.join("output", "classification_variables", input_samples[-1]))
+
+    # -- Combine all training data into a new sample
+    train_data_combined = process_data.combine_datasets(training_data.values())
+    combined_input_sample = input_samples[0] if len(input_samples) == 1 else "Merged_inputs"
+    training_sample = args.training_sample if args.training_sample is not None else combined_input_sample
 
     # -- Sequentially evaluate all the desired strategies on the same train/test sample
     for strategy_name in args.strategy:
@@ -77,60 +85,65 @@ if __name__ == "__main__":
         # -- Construct dictionary of available strategies
         if strategy_name not in strategies.__dict__.keys():
             raise AttributeError("{} is not a valid strategy".format(strategy_name))
-        ML_strategy = getattr(strategies, strategy_name)(input_sample)
+        ML_strategy = getattr(strategies, strategy_name)(combined_input_sample)
 
         # -- Training!
         if args.ftrain > 0:
             logger.info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
 
             # -- Train classifier
-            ML_strategy.train(train_data, classification_variables, variable2type)
+            ML_strategy.train(train_data_combined, classification_variables, variable2type)
 
-            # -- Plot the classifier output as tested on the training set
+            # -- Plot the classifier output as tested on each of the training sets
             # -- (only useful if you care to check the performance on the training set)
-            yhat_train = ML_strategy.test(train_data, classification_variables, process="training", sample_name=training_sample)
-            plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=input_sample)
+            for (sample_name, train_data) in training_data.items():
+                logger.info("Sanity check: plotting classifier output tested on training set {}".format(sample_name))
+                yhat_train = ML_strategy.test(train_data, classification_variables, process="training", sample_name=training_sample)
+                plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 
         else:
             logger.info("Preparing to use 100% of sample as testing input")
 
         # -- Testing!
         if args.ftrain < 1:
-            # -- Test classifier
-            yhat_test = ML_strategy.test(test_data, classification_variables, process="testing", sample_name=training_sample)
+            for (sample_name, test_data) in testing_data.items():
+                logger.info("Running classifier on testing set for {}".format(sample_name))
 
-            # -- Plot output testing distributions from classifier and old strategies
-            plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=input_sample)
-            for old_strategy_name in ["mHmatch", "pThigh"]:
-                plot_outputs.old_strategy(ML_strategy, yhat_test_data[old_strategy_name] == 0, test_data, old_strategy_name, sample_name=input_sample)
-                plot_outputs.confusion(ML_strategy, yhat_test_data[old_strategy_name] == 0, test_data, old_strategy_name, sample_name=input_sample)
+                # -- Test classifier
+                yhat_test = ML_strategy.test(test_data, classification_variables, process="testing", sample_name=training_sample)
 
-            # -- Performance evaluation:
-            # -- 1) Jet-pair level
+                # -- Plot output testing distributions from classifier and old strategies
+                plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=sample_name)
+                for old_strategy_name in ["mHmatch", "pThigh"]:
+                    plot_outputs.old_strategy(ML_strategy, yhat_test_data[old_strategy_name] == 0, test_data, old_strategy_name, sample_name=sample_name)
+                    plot_outputs.confusion(ML_strategy, yhat_test_data[old_strategy_name] == 0, test_data, old_strategy_name, sample_name=sample_name)
 
-            # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
-            logger.info("Plotting ROC curves")
-            plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_test_data["mHmatch"] == 0, yhat_test_data["pThigh"] == 0, yhat_test, test_data)
+                # -- Performance evaluation:
+                # -- 1) Jet-pair level
 
-            # -- 2) Event level
+                # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
+                logger.info("Plotting ROC curves")
+                plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_test_data["mHmatch"] == 0, yhat_test_data["pThigh"] == 0, yhat_test, test_data)
 
-            # -- put arrays back into event format by matching shape of y_event
-            w_test = np.array([np.unique(w)[0] for w in process_data.match_shape(test_data["w"], y_event)])
-            # ^ could also extract it directly from process_data
-            yhat_test_ev = process_data.match_shape(yhat_test, y_event)
-            yhat_mHmatch_test_ev = process_data.match_shape(yhat_test_data["mHmatch"] == 0, y_event)
-            yhat_pThigh_test_ev = process_data.match_shape(yhat_test_data["pThigh"] == 0, y_event)
+                # -- 2) Event level
 
-            # -- print performance
-            logger.info("Preparing event-level performance information")
-            cPickle.dump({"yhat_test_ev": yhat_test_ev,
-                          "yhat_mHmatch_test_ev": yhat_mHmatch_test_ev,
-                          "yhat_pThigh_test_ev": yhat_pThigh_test_ev,
-                          "y_event": y_event,
-                          "mjb_event": mjb_event,
-                          "pTj_event": pTj_event,
-                          "w_test": w_test},
-                         open(os.path.join(ML_strategy.output_directory, "event_performance_dump.pkl"), "wb"))
+                # -- put arrays back into event format by matching shape of y_event
+                w_test = np.array([np.unique(w)[0] for w in process_data.match_shape(test_data["w"], y_event)])
+                # ^ could also extract it directly from process_data
+                yhat_test_ev = process_data.match_shape(yhat_test, y_event)
+                yhat_mHmatch_test_ev = process_data.match_shape(yhat_test_data["mHmatch"] == 0, y_event)
+                yhat_pThigh_test_ev = process_data.match_shape(yhat_test_data["pThigh"] == 0, y_event)
+
+                # -- print performance
+                logger.info("Preparing event-level performance information")
+                cPickle.dump({"yhat_test_ev": yhat_test_ev,
+                              "yhat_mHmatch_test_ev": yhat_mHmatch_test_ev,
+                              "yhat_pThigh_test_ev": yhat_pThigh_test_ev,
+                              "y_event": y_event,
+                              "mjb_event": mjb_event,
+                              "pTj_event": pTj_event,
+                              "w_test": w_test},
+                             open(os.path.join(ML_strategy.output_directory, "event_performance_dump.pkl"), "wb"))
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")

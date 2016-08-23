@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import logging
 import numpy as np
+from numpy.lib.recfunctions import stack_arrays, merge_arrays
 from root_numpy import rec2array, root2rec, root2array
 from sklearn.cross_validation import train_test_split
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -32,8 +33,12 @@ def load(input_filename, excluded_variables, training_fraction):
                 X = ndarray of dim (# testing examples, # features)
                 y = array of dim (# testing examples) with target values
                 w = array of dim (# testing examples) with event weights
-            yhat_mHmatch_test = output of binary decision based on jet pair with closest m_jb to 125GeV
-            yhat_pThigh_test = output of binary decision based on jet with highest pT
+            yhat_test_data = dictionary, containing "mHmatch", "pThigh" for the test set, where
+                mHmatch = array of dim (# testing examples) with output of binary decision based on jet pair with closest m_jb to 125GeV
+                pThigh  = array of dim (# testing examples) with output of binary decision based on jet with highest pT
+            y_event   = event-level array with "truth" decision about this pairing
+            mjb_event = event-level array with mass of jb pair
+            pTj_event = event-level array with pT of jet
     """
     logging.getLogger("process_data.load").info("Loading input from ROOT files")
     for v_name in excluded_variables:
@@ -47,7 +52,7 @@ def load(input_filename, excluded_variables, training_fraction):
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
     # -- reduce to 10000 events for testing
-    data_rec = data_rec[np.random.randint(data_rec.shape[0], size=10000)]
+    data_rec = data_rec[np.random.randint(data_rec.shape[0], size=3)]
 
     # -- throw away events with no jet pairs
     logging.getLogger("process_data.load").info("Found {} events".format(data_rec.size))
@@ -142,6 +147,40 @@ def balance_weights(y_train, w_train, targetN=10000):
         w_train[y_train == classID] *= float(targetN) / float(np.sum(w_train[y_train == classID]))
 
     return w_train
+
+
+def combine_datasets(dataset_list):
+    """
+    Definition:
+    -----------
+        Function that combines a list datasets into a single dataset
+        Each of the inputs (and the output) should have the form {"X":data, "y":recarray, "w":recarray}
+        This allows us to combine datasets from different input files
+
+    Args:
+    -----
+        dataset_list = array of dictionaries of the form {"X":data, "y":recarray, "w":recarray}
+
+    Returns:
+    --------
+        dictionary of the form {"X":data, "y":recarray, "w":recarray} containing all input information
+    """
+    # -- y and w are 1D arrays which are simple to combine
+    y_combined = stack_arrays( [dataset["y"] for dataset in dataset_list], asrecarray=True, usemask=False)
+    w_combined = stack_arrays( [dataset["w"] for dataset in dataset_list], asrecarray=True, usemask=False)
+
+    # print dataset_list[0]["X"].dtype
+
+    # -- Construct the desired output shape using the known size of y_combined
+    #    Necessary shape is (N_elements, N_categories)
+    X_shape = ( y_combined.shape[0], dataset_list[0]["X"].shape[1] )
+
+    # -- Stack X arrays and then reshape
+    X_combined = stack_arrays( [dataset["X"] for dataset in dataset_list], asrecarray=True, usemask=False)
+    X_combined.resize(X_shape)
+
+    # -- Recombine into a dictionary and return
+    return {"X":X_combined, "y":y_combined, "w":w_combined}
 
 
 def match_shape(arr, ref):
