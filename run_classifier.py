@@ -72,6 +72,7 @@ if __name__ == "__main__":
 
     # -- Combine all training data into a new sample
     train_data_combined = process_data.combine_datasets(training_data.values())
+    logger.info("Combining {} into one training sample with {} entries".format(len(input_samples), train_data_combined["y"].shape[0]))
     combined_input_sample = input_samples[0] if len(input_samples) == 1 else "Merged_inputs"
     training_sample = args.training_sample if args.training_sample is not None else combined_input_sample
     old_strategy_names = yhat_old_testing_data[input_samples[0]].keys()
@@ -94,7 +95,7 @@ if __name__ == "__main__":
             # -- Plot the classifier output as tested on each of the training sets
             # -- (only useful if you care to check the performance on the training set)
             for (sample_name, train_data) in training_data.items():
-                logger.info("Sanity check: plotting classifier output tested on training set {}".format(sample_name))
+                logger.info("Sanity check: testing global classifier output on training set {}".format(sample_name))
                 yhat_train = ML_strategy.test(train_data, classification_variables, process="training", sample_name=training_sample)
                 plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 

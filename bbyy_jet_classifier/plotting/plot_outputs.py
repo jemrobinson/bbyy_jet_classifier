@@ -48,7 +48,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
 
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
-    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}.pdf".format(old_strategy_name, sample_name)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}_classifier.pdf".format(sample_name, old_strategy_name)))
 
 
 def confusion(ML_strategy, yhat, data, model_name, sample_name):
@@ -83,11 +83,13 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
         plt.xlabel('Predicted Label')
         plt.tight_layout()
 
-    cm = confusion_matrix(y_test, yhat)
+    # -- need to round yhat to nearest integer (0 or 1) to match y_test format
+    #    NB. this is equivalent to cutting at the halfway point of the distribution
+    cm = confusion_matrix(y_test, np.rint(yhat))
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
-    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "confusion_{}_{}.pdf".format(model_name, sample_name)))
+    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}_confusion.pdf".format(sample_name, model_name)))
     plt.close(figure)
 
 
@@ -111,7 +113,7 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     ensure_directory(os.path.join(ML_strategy.output_directory, process))
 
     # -- Initialise figure, axes and binning
-    logging.getLogger("plot_outputs").info("Plotting classifier output for {} sample".format(process))
+    logging.getLogger("plot_outputs").info("Plotting classifier output on {} set for {}".format(process, sample_name))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
@@ -131,5 +133,5 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     plot_atlas.use_atlas_labels(axes)
 
     # -- Write figure and close plot to save memory
-    figure.savefig(os.path.join(ML_strategy.output_directory, process, "BDT_{}.pdf".format(sample_name)))
+    figure.savefig(os.path.join(ML_strategy.output_directory, process, "{}_BDT_classifier.pdf".format(sample_name)))
     plt.close(figure)
