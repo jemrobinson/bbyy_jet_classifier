@@ -18,7 +18,7 @@ ROOT_2_LATEX = {
 }
 
 
-def input_distributions(classification_variables, training_data, test_data, plot_directory):
+def input_distributions(classification_variables, training_data, test_data, output_directory):
     """
     Definition:
     -----------
@@ -26,12 +26,12 @@ def input_distributions(classification_variables, training_data, test_data, plot
 
     Args:
     -----
-            strategy = a classification method -- here either sklBDT or RootTMVA
-            data = dictionary, containing 'X', 'y', 'w' for a dataset, where:
+            classification_variables = list of names of variables used for classification
+            training_data, test_data = dictionaries, containing 'X', 'y', 'w' for a dataset, where:
                 X = ndarray of dim (# examples, # features)
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
-            process = string, either "training" or "testing", usually
+            output_directory = location where plots will be saved
     """
     # -- Setup ATLAS style
     logging.getLogger("plot_inputs").info("Plotting input distributions")
@@ -92,6 +92,6 @@ def input_distributions(classification_variables, training_data, test_data, plot
         plot_atlas.use_atlas_labels(axes)
 
         # -- Write figure and close plot to save memory
-        utils.ensure_directory(plot_directory)
-        figure.savefig(os.path.join(plot_directory, "{}.pdf".format(variable)))
+        utils.ensure_directory(output_directory)
+        figure.savefig(os.path.join(output_directory, "{}.pdf".format(variable)))
         plt.close(figure)

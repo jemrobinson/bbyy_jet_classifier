@@ -12,9 +12,8 @@ class sklBDT(BaseStrategy):
     """
     Strategy using a BDT from scikit-learn
     """
-    default_output_subdir = "sklBDT"
 
-    def train(self, train_data, classification_variables, variable_dict):
+    def train(self, train_data, classification_variables, variable_dict, sample_name):
         """
         Definition:
         -----------
@@ -28,17 +27,18 @@ class sklBDT(BaseStrategy):
                 w = array of dim (# training examples) with event weights
             classification_variables = list of names of variables used for classification
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
+            sample_name = string that specifies the file name of the sample being trained on
         """
         # -- Train:
-        logging.getLogger("sklBDT").info("Training...")
+        logging.getLogger("skl_BDT").info("Training...")
         classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
         classifier.fit(train_data["X"], train_data["y"], sample_weight=train_data["w"])
 
         # -- Dump output to pickle
-        ensure_directory(os.path.join(self.output_directory, "pickle"))
-        joblib.dump(classifier, os.path.join(self.output_directory, "pickle", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
+        ensure_directory(os.path.join(self.output_directory, sample_name, self.name, "classifier", ))
+        joblib.dump(classifier, os.path.join(self.output_directory, sample_name, self.name, "classifier", "sklBDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
-    def test(self, data, classification_variables, process, sample_name):
+    def test(self, test_data, classification_variables, training_sample):
         """
         Definition:
         -----------
@@ -50,25 +50,24 @@ class sklBDT(BaseStrategy):
                 X = ndarray of dim (# examples, # features)
                 y = array of dim (# examples) with target values
                 w = array of dim (# examples) with event weights
-            process = string to identify whether we are evaluating performance on the train or test set, usually "training" or "testing"
             classification_variables = list of names of variables used for classification
-            train_location = string that specifies the file name of the sample to use as a training (e.g. "SM_merged" or "X350_hh")
+            training_sample = string that specifies the file name of the sample to use as a training (e.g. "SM_merged" or "X350_hh")
 
         Returns:
         --------
             yhat = the array of BDT outputs corresponding to the P(signal), of dimensions (n_events)
         """
-        logging.getLogger("sklBDT").info("Evaluating performance...")
+        logging.getLogger("skl_BDT").info("Evaluating performance...")
 
         # -- Load scikit classifier
-        classifier = joblib.load(os.path.join(self.training_location(sample_name), "pickle", "sklBDT_clf.pkl"))
+        classifier = joblib.load(os.path.join(self.output_directory, training_sample, self.name, "classifier", "sklBDT_clf.pkl"))
 
         # -- Get classifier predictions
-        yhat = classifier.predict_proba(data["X"])[:, 1]
+        yhat = classifier.predict_proba(test_data["X"])[:, 1]
 
         # -- Log classification scores
-        logging.getLogger("sklBDT").info("{} accuracy = {:.2f}%".format(process, 100 * classifier.score(data["X"], data["y"], sample_weight=data["w"])))
-        for output_line in classification_report(data["y"], classifier.predict(data["X"]), target_names=["correct", "incorrect"], sample_weight=data["w"]).splitlines():
-            logging.getLogger("sklBDT").info(output_line)
+        logging.getLogger("skl_BDT").info("accuracy = {:.2f}%".format(100 * classifier.score(test_data["X"], test_data["y"], sample_weight=test_data["w"])))
+        for output_line in classification_report(test_data["y"], classifier.predict(test_data["X"]), target_names=["correct", "incorrect"], sample_weight=test_data["w"]).splitlines():
+            logging.getLogger("skl_BDT").info(output_line)
 
         return yhat

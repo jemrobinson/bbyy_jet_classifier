@@ -7,7 +7,7 @@ from viz import add_curve, calculate_roc, ROC_plotter
 from ..utils import ensure_directory
 
 
-def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old):
+def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old, sample_name):
     """
     Definition:
     -----------
@@ -30,13 +30,14 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old):
     eff_pT_signal = float(sum((yhat_old["pThigh"] * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
     eff_pT_bkg = float(sum((yhat_old["pThigh"] * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
 
-    ensure_directory(os.path.join(ML_strategy.output_directory, "pickle"))
+    # -- Write old strategies pickle to output directory
+    ensure_directory(os.path.join(ML_strategy.output_directory, "pickles", sample_name))
     cPickle.dump({
         "eff_mH_signal": eff_mH_signal,
         "eff_mH_bkg": eff_mH_bkg,
         "eff_pT_signal": eff_pT_signal,
         "eff_pT_bkg": eff_pT_bkg
-    }, open(os.path.join(ML_strategy.output_directory, "pickle", "old_strategies_dict.pkl"), "wb"))
+    }, open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_old_strategies_dict.pkl"), "wb"))
 
     # -- Initialise figure and axes
     logging.getLogger("plot_roc").info("Plotting signal efficiency and background rejection")
@@ -49,31 +50,33 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old):
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
-    figure.savefig(os.path.join(ML_strategy.output_directory, "ROC.pdf"))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "ROC_{}_{}.pdf".format(ML_strategy.name, sample_name)))
 
-    # -- Save out ROC curve as pickle for later comparison
-    cPickle.dump(discrim_dict[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickle", "{}_ROC.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
+    # -- Save ROC curve as pickle for later comparison
+    cPickle.dump(discrim_dict[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_{}.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
 
 
-def roc_comparison(sample_name):
+def roc_comparison(ML_strategy, sample_name):
     """
     Definition:
     ------------
         Quick script to load and compare ROC curves produced from different classifiers
     """
-    TMVABDT = cPickle.load(open(os.path.join(sample_name, "RootTMVA", "pickle", "root_tmva_ROC.pkl"), "rb"))
-    sklBDT = cPickle.load(open(os.path.join(sample_name, "sklBDT", "pickle", "skl_BDT_ROC.pkl"), "rb"))
-    dots = cPickle.load(open(os.path.join(sample_name, "sklBDT", "pickle", "old_strategies_dict.pkl"), "rb"))
+    TMVABDT = cPickle.load(open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_root_tmva.pkl"), "rb"))
+    sklBDT = cPickle.load(open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_skl_BDT.pkl"), "rb"))
+    dots = cPickle.load(open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_old_strategies_dict.pkl"), "rb"))
 
     sklBDT["color"] = "green"
     curves = {"sklBDT": sklBDT, "RootTMVA": TMVABDT}
 
     # -- Initialise figure and axes
-    logging.getLogger("plot_roc").info("Plotting")
+    logging.getLogger("plot_roc").info("Comparing {} strategies".format(len(curves)+len(dots)/2))
     figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
 
     plt.plot(dots["eff_mH_signal"], 1.0 / dots["eff_mH_bkg"], marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(dots["eff_pT_signal"], 1.0 / dots["eff_pT_bkg"], marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
-    figure.savefig(os.path.join(sample_name, "ROCcomparison.pdf"))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "ROC_comparison_{}.pdf".format(sample_name)))

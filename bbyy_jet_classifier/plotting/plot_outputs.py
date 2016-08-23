@@ -23,11 +23,8 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
                 w = array of dim (# testing examples) with event weights
             old_strategy_name = string, name of the strategy to use, either "mHmatch" or "pThigh"
     """
-    # -- Ensure output directory exists
-    ensure_directory(os.path.join(ML_strategy.output_directory, "testing"))
-
     # -- Initialise figure and axes
-    logging.getLogger("plot_outputs").info("Plotting old strategy: {} for testing sample".format(old_strategy_name))
+    logging.getLogger("plot_outputs").info("Plotting old strategy {} on testing set for {}".format(old_strategy_name, sample_name))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
@@ -48,7 +45,8 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
 
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
-    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}_classifier.pdf".format(sample_name, old_strategy_name)))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
+    figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "{}_classifier_{}.pdf".format(old_strategy_name, sample_name)))
 
 
 def confusion(ML_strategy, yhat, data, model_name, sample_name):
@@ -89,7 +87,8 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
-    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", "{}_{}_confusion.pdf".format(sample_name, model_name)))
+    ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
+    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "{}_confusion_{}.pdf".format(model_name, sample_name)))
     plt.close(figure)
 
 
@@ -109,9 +108,6 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
             process = string, either "training" or "testing", usually
             sample_name = arbitrary string that refers back to the input file, usually
     """
-    # -- Ensure output directory exists
-    ensure_directory(os.path.join(ML_strategy.output_directory, process))
-
     # -- Initialise figure, axes and binning
     logging.getLogger("plot_outputs").info("Plotting classifier output on {} set for {}".format(process, sample_name))
     plot_atlas.set_style()
@@ -133,5 +129,6 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     plot_atlas.use_atlas_labels(axes)
 
     # -- Write figure and close plot to save memory
-    figure.savefig(os.path.join(ML_strategy.output_directory, process, "{}_BDT_classifier.pdf".format(sample_name)))
+    ensure_directory(os.path.join(ML_strategy.output_directory, process, sample_name))
+    figure.savefig(os.path.join(ML_strategy.output_directory, process, sample_name, "{}_classifier_{}.pdf".format(ML_strategy.name, sample_name)))
     plt.close(figure)
