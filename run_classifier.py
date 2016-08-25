@@ -75,8 +75,9 @@ if __name__ == "__main__":
                                         output_directory=os.path.join(args.output, "classification_variables", input_samples[-1]))
 
     # -- Combine all training data into a new sample
-    train_data_combined = process_data.combine_datasets(training_data.values())
-    logger.info("Combining {} into one training sample with {} jet pairs".format(len(input_samples), train_data_combined["y"].shape[0]))
+    if args.ftrain > 0:
+        train_data_combined = process_data.combine_datasets(training_data.values())
+        logger.info("Combining {} into one training sample with {} jet pairs".format(len(input_samples), train_data_combined["y"].shape[0]))
     combined_input_sample = input_samples[0] if len(input_samples) == 1 else "merged_inputs"
     old_strategy_names = yhat_old_test_data[input_samples[0]].keys()
 

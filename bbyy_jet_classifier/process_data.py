@@ -8,7 +8,6 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"int32": "I", "float64": "D", "float32": "F"}
 
-
 def load(input_filename, excluded_variables, training_fraction, max_events):
     """
     Definition:
