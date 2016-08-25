@@ -29,7 +29,6 @@ class sklBDT(BaseStrategy):
             variable_dict = ordered dict, mapping all the branches from the TTree to their type
             sample_name = string that specifies the file name of the sample being trained on
         """
-        print classification_variables, variable_dict
         # -- Train:
         logging.getLogger("skl_BDT").info("Training...")
         classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
@@ -40,14 +39,11 @@ class sklBDT(BaseStrategy):
         joblib.dump(classifier, os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
         # Save BDT to TMVA xml file
-        # Note:
-        #    - declare input variable names and their type
-        #    - variable order is important for TMVA
+        # NB. variable order is important for TMVA
         try:
             from skTMVA import convert_bdt_sklearn_tmva
             logging.getLogger("skl_BDT").info("Exporting output to TMVA XML file")
             variables = [ (v,variable_dict[v]) for v in classification_variables ]
-            print "->",os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_TMVA.weights.xml")
             convert_bdt_sklearn_tmva(classifier, variables, os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_TMVA.weights.xml"))
         except ImportError:
             logging.getLogger("skl_BDT").info("Could not import skTMVA. Skipping export to TMVA output.")
