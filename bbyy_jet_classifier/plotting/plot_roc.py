@@ -52,6 +52,7 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old, sample
     plot_atlas.use_atlas_labels(plt.axes())
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "ROC_{}_{}.pdf".format(ML_strategy.name, sample_name)))
+    plt.close(figure)
 
     # -- Save ROC curve as pickle for later comparison
     cPickle.dump(discrim_dict[ML_strategy.name], open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_{}.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
@@ -71,7 +72,7 @@ def roc_comparison(ML_strategy, sample_name):
     curves = {"sklBDT": sklBDT, "RootTMVA": TMVABDT}
 
     # -- Initialise figure and axes
-    logging.getLogger("plot_roc").info("Comparing {} strategies".format(len(curves)+len(dots)/2))
+    logging.getLogger("plot_roc").info("Comparing {} strategies for {}".format(len(curves)+len(dots)/2, sample_name))
     figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
 
     plt.plot(dots["eff_mH_signal"], 1.0 / dots["eff_mH_bkg"], marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
@@ -80,3 +81,4 @@ def roc_comparison(ML_strategy, sample_name):
     plot_atlas.use_atlas_labels(plt.axes())
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "ROC_comparison_{}.pdf".format(sample_name)))
+    plt.close(figure)

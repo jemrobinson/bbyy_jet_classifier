@@ -107,7 +107,9 @@ if __name__ == "__main__":
 
         # -- Testing!
         if args.ftrain < 1:
+            logger.info("Preparing to test with {}% of events".format(int(100 * (1-args.ftrain))))
             training_sample = args.training_sample if args.training_sample is not None else combined_input_sample
+
             for (sample_name, test_data) in testing_data.items():
                 logger.info("Running classifier from {} on testing set for {}".format(training_sample, sample_name))
 
@@ -127,7 +129,7 @@ if __name__ == "__main__":
                 # -- 1) Jet-pair level
 
                 # -- Visualize performance by displaying the ROC curve from the selected ML strategy and comparing it with the old strategies
-                logger.info("Plotting ROC curves")
+                logger.info("Plotting ROC curve from {} for {} sample".format(ML_strategy.name, sample_name))
                 yhat_old_test_data_dict = dict( [(old_strategy_name, yhat_old_test_data[sample_name][old_strategy_name] == 0) for old_strategy_name in old_strategy_names] )
                 plot_roc.signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old_test_data_dict, sample_name)
 
@@ -142,7 +144,7 @@ if __name__ == "__main__":
                 yhat_pThigh_test_ev = process_data.match_shape(yhat_old_test_data_dict["pThigh"], test_events_data[sample_name]["y"])
 
                 # -- print performance
-                logger.info("Preparing event-level performance information")
+                logger.info("Writing out event-level performance information...")
                 utils.ensure_directory(os.path.join(ML_strategy.output_directory, "pickles", sample_name))
                 cPickle.dump({"yhat_test_ev": yhat_test_ev,
                               "yhat_mHmatch_test_ev": yhat_mHmatch_test_ev,
@@ -151,13 +153,13 @@ if __name__ == "__main__":
                               "mjb_event": test_events_data[sample_name]["m_jb"],
                               "pTj_event": test_events_data[sample_name]["pT_j"],
                               "w_test": test_events_data[sample_name]["w"]},
-                             open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "event_performance_dump.pkl"), "wb"), cPickle.HIGHEST_PROTOCOL)
+                             open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "{}_event_performance_dump.pkl".format(ML_strategy.name)), "wb"), cPickle.HIGHEST_PROTOCOL)
 
         else:
             logger.info("100% of the sample was used for training -- no independent testing can be performed.")
 
     # -- if there is more than one strategy and we aren't only training, plot the ROC comparison
     if len(args.strategy) > 1 and (args.ftrain < 1):
+        logger.info("Plotting ROC comparisons for {} samples".format(len(input_samples)))
         for input_sample in input_samples:
-            logger.info("Plotting ROC comparison for {}".format(input_sample))
             plot_roc.roc_comparison(ML_strategy, input_sample)

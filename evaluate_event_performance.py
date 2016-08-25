@@ -6,21 +6,25 @@ import os
 from itertools import izip
 from joblib import Parallel, delayed
 import numpy as np
+import time
 from bbyy_jet_classifier import utils
 
-BKG_NAME = "SM_bkg_photon_jet"
 
-
-def main(pickle_paths, THRESHOLD):
+def main(sample_names, strategy, THRESHOLD):
     logger = logging.getLogger("event_performance.main")
 
-    logger.info("Processing data...")
+    bkg_sample_name = [ x for x in sample_names if "bkg" in x ][0]
+    logger.info("Processing data from {} samples...".format(len(sample_names)))
+
+    pickle_paths = sum([glob.glob(os.path.join("output", "pickles", sample_name, "{}_event_performance_dump.pkl".format(strategy))) for sample_name in sample_names], [])
+    logger.info("Found {} datasets to load...".format(len(pickle_paths)))
+
     perf_dict = {}
-    for path in pickle_paths:
-        logger.info("Working on: ")
-        logger.info(path)
+    for sample_name, path in zip(sample_names,pickle_paths):
+        start_time = time.time()
+        logger.info("Reading: {}...".format(path))
         d = cPickle.load(open(path, "rb"))
-        perf_dict[path.split("/")[0]] = eval_performance(
+        perf_dict[sample_name] = eval_performance(
             d["yhat_test_ev"],
             d["yhat_mHmatch_test_ev"],
             d["yhat_pThigh_test_ev"],
@@ -29,28 +33,29 @@ def main(pickle_paths, THRESHOLD):
             d["w_test"],
             THRESHOLD=THRESHOLD
         )
-
-    headers = [path.split("/")[2] for path in pickle_paths if path.split("/")[2] != BKG_NAME]
+        logger.info("Done in {:.2f} seconds".format(time.time()-start_time))
 
     if hasattr(THRESHOLD, "__iter__"):
         asimov_dict = {
-            _class: {
-                strategy: map(np.array, [THRESHOLD, [asimov(s, b) for s, b in zip(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy])]])
+            _sample_name: {
+                strategy: map(np.array, [THRESHOLD, [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
                 for strategy in ["BDT", "mHmatch", "pThigh"]
             }
-            for _class in headers
+            for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
         }
 
     else:
         asimov_dict = {
-            _class: {
-                strategy: map(np.array, [[THRESHOLD], [asimov(s, b) for s, b in zip(perf_dict[_class][strategy], perf_dict[BKG_NAME][strategy])]])
+            _sample_name: {
+                strategy: map(np.array, [[THRESHOLD], [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
                 for strategy in ["BDT", "mHmatch", "pThigh"]
             }
-            for _class in headers
+            for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
         }
 
-    with open("multi_proc_TMVA.pkl", "wb") as f:
+    # Write output to disk
+    utils.ensure_directory(os.path.join("output", "pickles"))
+    with open(os.path.join("output", "pickles", "multi_proc_TMVA.pkl"), "wb") as f:
         cPickle.dump(asimov_dict, f)
 
 
@@ -86,10 +91,10 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
         THRESHOLD: an integer or iterable of integers
     """
     logger = logging.getLogger("eval_performance")
-    logger.debug("BDT: Number of correctly classified events = {} out of {} events having a correct pair".format(*count_correct_total(yhat_test_ev, y_event)))
-    logger.debug("mHmatch: Number of correctly classified events = {} out of {} events having a correct pair".format(*count_correct_total(yhat_mHmatch_test_ev, y_event)))
-    logger.debug("pThigh: Number of correctly classified events = {} out of {} events having a correct pair".format(*count_correct_total(yhat_pThigh_test_ev, y_event)))
-    logger.debug("Number of events without any correct pair = {}".format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
+    logger.info("BDT:     Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_test_ev, y_event)))
+    logger.info("mHmatch: Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_mHmatch_test_ev, y_event)))
+    logger.info("pThigh:  Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pThigh_test_ev, y_event)))
+    logger.info("Number of events without any correct pair = {}".format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
 
     # check whether selected pair has m_jb in mass window for truly correct and truly incorrect pairs
     # -- this will make little sense for SM_merged because lots of events are bkg and shouldn"t fall in m_bj window, but can"t tell them
@@ -116,15 +121,15 @@ def count_correct_total(yhat, y):
         y:    event level numpy array containing the truth labels for each jet in the event
     Returns:
     --------
-        n_correct_classifier: int, number of events in which the correct jet pair was assigned the highest classifier score
+        n_correct_sample_nameifier: int, number of events in which the correct jet pair was assigned the highest classifier score
         n_correct_truth:      int, total number of events with a "correct" jet pair
     """
     # -- find how many times we find the correct pair in all events that do have a correct pair
-    # correct_classifier = a truly correct pair existed (sum(y[ev]) == 1) and we got it right (np.argmax(yhat[ev]) == np.argmax(y[ev]))
-    n_correct_classifier = sum([np.argmax(yhat[ev]) == np.argmax(y[ev]) for ev in xrange(len(y)) if sum(y[ev]) == 1])
+    # correct_sample_nameifier = a truly correct pair existed (sum(y[ev]) == 1) and we got it right (np.argmax(yhat[ev]) == np.argmax(y[ev]))
+    n_correct_sample_nameifier = sum([np.argmax(yhat[ev]) == np.argmax(y[ev]) for ev in xrange(len(y)) if sum(y[ev]) == 1])
     # correct_truth = a truly correct pair exists
     n_correct_truth = sum([sum(y[ev]) == 1 for ev in xrange(len(y))])
-    return n_correct_classifier, n_correct_truth
+    return n_correct_sample_nameifier, n_correct_truth
 
 
 def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer, thresh):
@@ -160,7 +165,7 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
         # num_inX are lists in this scenario
         num_inA = Parallel(n_jobs=20, verbose=True)(delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, correct_truth_correct_BDT, thresh) for thresh in THRESHOLD)
         num_inB = Parallel(n_jobs=20, verbose=True)(delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT, thresh) for thresh in THRESHOLD)
-        num_inC = Parallel(n_jobs=20, verbose=True)(delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, -correct_present_truth, thresh)for thresh in THRESHOLD)
+        num_inC = Parallel(n_jobs=20, verbose=True)(delayed(_weightedsum_eventsinmjb)(weights_in_mjb, yhat_test_ev, -correct_present_truth, thresh) for thresh in THRESHOLD)
 
         return np.array([num_inA, num_inB, num_inC]).sum(axis=0)
 
@@ -169,13 +174,13 @@ def in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_trut
         num_inB = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, correct_truth_incorrect_BDT, thresh=THRESHOLD)
         num_inC = _weightedsum_eventsinmjb(weights_in_mjb, yhat_test_ev, -correct_present_truth, thresh=THRESHOLD)
 
-        logger.debug("Total number of events with a correct pair present and identified = {}".format(sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))))
-        logger.debug("Of these events, {} fall in m_jb window".format(num_inA))
-        logger.debug("Total number of events with a correct pair present but a different one selected = {}".format(sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))))
-        logger.debug("Of these events, {} fall in m_jb window".format(num_inB))
-        logger.debug("Total number of events without a correct pair = {}".format(sum((w * c) for w, c in izip(w_test, -correct_present_truth))))
-        logger.debug("Of these events, out of the ones selected by the classifier, {} fall in m_jb window".format(num_inC))
-        logger.debug("Total number of events in the m_jb window = {}".format(num_inA + num_inB + num_inC))
+        logger.info("Total number of events with a correct pair present and identified = {}".format(sum((w * c) for w, c in izip(w_test, correct_truth_correct_BDT))))
+        logger.info("Of these events, {} fall in m_jb window".format(num_inA))
+        logger.info("Total number of events with a correct pair present but a different one selected = {}".format(sum((w * c) for w, c in izip(w_test, correct_truth_incorrect_BDT))))
+        logger.info("Of these events, {} fall in m_jb window".format(num_inB))
+        logger.info("Total number of events without a correct pair = {}".format(sum((w * c) for w, c in izip(w_test, -correct_present_truth))))
+        logger.info("Of these events, out of the ones selected by the classifier, {} fall in m_jb window".format(num_inC))
+        logger.info("Total number of events in the m_jb window = {}".format(num_inA + num_inB + num_inC))
         return [num_inA + num_inB + num_inC]
 
 
@@ -185,8 +190,7 @@ if __name__ == "__main__":
     utils.configure_logging()
 
     parser = argparse.ArgumentParser(description="Check event level performance")
-    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: RootTMVA, sklBDT.", default="sklBDT")
+    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="skl_BDT")
     parser.add_argument("sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
     args = parser.parse_args()
-    pickle_paths = sum([glob.glob(os.path.join("output", args.strategy, sample_name, "event_performance_dump.pkl")) for sample_name in args.sample_names], [])
-    sys.exit(main(pickle_paths, np.linspace(-1, 1, 21)))
+    sys.exit(main(args.sample_names, args.strategy, np.linspace(-1, 1, 21)))

@@ -47,6 +47,7 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
     plot_atlas.use_atlas_labels(axes)
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
     figure.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "{}_classifier_{}.pdf".format(old_strategy_name, sample_name)))
+    plt.close(figure)
 
 
 def confusion(ML_strategy, yhat, data, model_name, sample_name):
