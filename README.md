@@ -10,8 +10,9 @@ Classifier to determine which jet-pairs to use for analysis
 ./run_classifier.py --input inputs/X325_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
 ./run_classifier.py --input inputs/X350_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
 ./run_classifier.py --input inputs/X400_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
-./run_classifier.py --input inputs/SM_bkg_photon_jet.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
-./run_classifier.py --input inputs/SM_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
+
+# Example: training and testing on all inputs
+./run_classifier.py --input inputs/*root --exclude Delta_phi_jb
 
 # Example: evaluate event-level performance
 ./evaluate_event_performance.py X275_hh X300_hh X325_hh X400_hh SM_bkg_photon_jet SM_hh

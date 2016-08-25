@@ -85,8 +85,9 @@ class RootTMVA(BaseStrategy):
             reader.AddVariable(v_name, array.array("f", [0]))
 
         # -- Load TMVA results
-        # reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, self.name, "weights", "TMVAClassification_BDT.weights.xml"))
-        reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, "skl_BDT", "classifier", "skl_BDT_TMVA.weights.xml"))
+        reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, self.name, "weights", "TMVAClassification_BDT.weights.xml"))
+        # -- Load skl_BDT results (used for testing only)
+        # reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, "skl_BDT", "classifier", "skl_BDT_TMVA.weights.xml"))
 
         yhat = evaluate_reader(reader, "BDT", test_data["X"])
         return yhat
