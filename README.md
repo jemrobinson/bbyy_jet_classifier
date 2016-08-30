@@ -1,5 +1,7 @@
 # bbyy_jet_classifier
-Classifier to determine which jet-pairs to use for analysis
+This package is used by the ATLAS HH->bbyy search.
+It defines a classifier to choose which non-b-tagged jet to pair with the b-tagged jet in 1-tag events.
+This code uses the ```skTMVA``` class from ```https://github.com/yuraic/koza4ok``` to convert ```scikit-learn``` output into ROOT TMVA xml input.
 
 # Example: training on SM inputs
 ./run_classifier.py --input inputs/SM_bkg_photon_jet.root inputs/SM_hh.root --exclude Delta_phi_jb --strategy RootTMVA sklBDT --max_events 1000
