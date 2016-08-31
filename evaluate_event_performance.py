@@ -8,15 +8,27 @@ from joblib import Parallel, delayed
 import numpy as np
 import time
 from bbyy_jet_classifier import utils
+from bbyy_jet_classifier.plotting import plot_asimov
 
 
-def main(sample_names, strategy, THRESHOLD):
+def main(sample_names, strategy, lower_bound, intervals):
+
     logger = logging.getLogger("event_performance.main")
-
+    THRESHOLD = np.linspace(lower_bound, 1, intervals)
     bkg_sample_name = [ x for x in sample_names if "bkg" in x ][0]
     logger.info("Processing data from {} samples...".format(len(sample_names)))
 
-    pickle_paths = sum([glob.glob(os.path.join("output", "pickles", sample_name, "{}_event_performance_dump.pkl".format(strategy))) for sample_name in sample_names], [])
+    pickle_paths = sum(
+        [glob.glob(
+                os.path.join(
+                    "output", 
+                    "pickles", 
+                    sample_name, 
+                    "{}_event_performance_dump.pkl".format(strategy)
+                    )
+                ) 
+        for sample_name in sample_names], [] # why adding an empty list?
+        )
     logger.info("Found {} datasets to load...".format(len(pickle_paths)))
 
     perf_dict = {}
@@ -55,8 +67,11 @@ def main(sample_names, strategy, THRESHOLD):
 
     # Write output to disk
     utils.ensure_directory(os.path.join("output", "pickles"))
-    with open(os.path.join("output", "pickles", "multi_proc_TMVA.pkl"), "wb") as f:
+    with open(os.path.join("output", "pickles", "multi_proc_{}.pkl".format(strategy)), "wb") as f:
         cPickle.dump(asimov_dict, f)
+
+    # Plot Z_BDT/Z_mHmatch for different threshold values
+    plot_asimov.bdt_mhmatch_ratio(asimov_dict, strategy, lower_bound)
 
 
 def asimov(s, b):
@@ -192,5 +207,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Check event level performance")
     parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="skl_BDT")
     parser.add_argument("sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
+    parser.add_argument("--intervals", type=int, help="number of threshold values to test", default=21)
     args = parser.parse_args()
-    sys.exit(main(args.sample_names, args.strategy, np.linspace(-1, 1, 21)))
+    if args.strategy == 'skl_BDT':
+        lower_bound = 0
+    elif args.strategy == 'root_tmva':
+        lower_bound = -1
+    else:
+        raise ValueError("Unknown strategy. The only options are root_tmva and skl_BDT.")
+    sys.exit(main(args.sample_names, args.strategy, lower_bound, args.intervals))
