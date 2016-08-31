@@ -59,7 +59,7 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
         Args:
         -----
                 ML_strategy = one of the machine learning strategy in strategies/ whose prerformance we want to visualize
-                yhat = the array of predictions
+                yhat = the array of binary predictions {0, 1}
                 data = dictionary, containing 'y', 'w' for the set to evaluate performance on, where:
                     y = array of dim (# examples) with target values
                     w = array of dim (# examples) with event weights
@@ -75,21 +75,24 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
-        tick_marks = np.arange(len(np.unique(y_test)))
+        tick_marks = [0, 1] #np.arange(len(np.unique(y_test)))
         plt.xticks(tick_marks, ['Incorrect', 'Correct'])
         plt.yticks(tick_marks, ['Incorrect', 'Correct'], rotation='vertical')
         plt.ylabel('True Label')
         plt.xlabel('Predicted Label')
         plt.tight_layout()
 
-    # -- need to round yhat to nearest integer (0 or 1) to match y_test format
-    #    NB. this is equivalent to cutting at the halfway point of the distribution
-    cm = confusion_matrix(y_test, np.rint(yhat))
+    cm = confusion_matrix(y_test, yhat)
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
-    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "{}_confusion_{}.pdf".format(model_name, sample_name)))
+    plt.savefig(os.path.join(
+        ML_strategy.output_directory, 
+        "testing", 
+        sample_name, 
+        "{}_confusion_{}.pdf".format(model_name, sample_name)
+        ))
     plt.close(figure)
 
 
@@ -110,6 +113,7 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
             sample_name = arbitrary string that refers back to the input file, usually
     """
     # -- Initialise figure, axes and binning
+    plt.clf()
     logging.getLogger("plot_outputs").info("Plotting classifier output on {} set for {}".format(process, sample_name))
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)

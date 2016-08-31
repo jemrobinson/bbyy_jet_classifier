@@ -31,7 +31,7 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("skl_BDT").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
+        classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=15, verbose=1)
         classifier.fit(train_data["X"], train_data["y"], sample_weight=train_data["w"])
 
         # -- Dump output to pickle
@@ -74,11 +74,17 @@ class sklBDT(BaseStrategy):
         classifier = joblib.load(os.path.join(self.output_directory, training_sample, self.name, "classifier", "skl_BDT_clf.pkl"))
 
         # -- Get classifier predictions
-        yhat = classifier.predict_proba(test_data["X"])[:, 1]
+        yhat = classifier.predict_proba(test_data["X"])[:, 1] # extracting column 1, i.e. P(signal)
+        yhat_class = classifier.predict(test_data["X"])
 
         # -- Log classification scores
         logging.getLogger("skl_BDT").info("accuracy = {:.2f}%".format(100 * classifier.score(test_data["X"], test_data["y"], sample_weight=test_data["w"])))
-        for output_line in classification_report(test_data["y"], classifier.predict(test_data["X"]), target_names=["correct", "incorrect"], sample_weight=test_data["w"]).splitlines():
+        for output_line in classification_report(
+                test_data["y"], 
+                yhat_class, 
+                target_names=["correct", "incorrect"], 
+                sample_weight=test_data["w"]
+                ).splitlines():
             logging.getLogger("skl_BDT").info(output_line)
 
-        return yhat
+        return yhat, yhat_class
