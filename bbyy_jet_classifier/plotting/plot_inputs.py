@@ -11,7 +11,7 @@ ROOT_2_LATEX = {
     "Delta_eta_jb": r"$\Delta\eta_{jb}$",
     "Delta_phi_jb": r"$\Delta\phi_{jb}$",
     "idx_by_mH": r"$m_{H}$ matching order",
-    "idx_by_m_jb": r"Highest dijet mass order",
+    "idx_by_pT_jb": r"Highest dijet $p_{T}$ order",
     "idx_by_pT": r"$p_{T}$ order",
     "m_jb": r"$m_{jb}$",
     "pT_j": r"$p_{T}^{j}$",
