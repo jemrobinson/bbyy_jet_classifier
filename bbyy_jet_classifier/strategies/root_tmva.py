@@ -2,6 +2,7 @@ import array
 import logging
 import os
 import shutil
+import numpy as np
 from ROOT import TCut, TFile, TMVA
 from root_numpy.tmva import add_classification_events, evaluate_reader
 from . import BaseStrategy
@@ -90,4 +91,7 @@ class RootTMVA(BaseStrategy):
         # reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, "skl_BDT", "classifier", "skl_BDT_TMVA.weights.xml"))
 
         yhat = evaluate_reader(reader, "BDT", test_data["X"])
-        return yhat
+        # -- add binary classification labels
+        yhat_class = np.zeros(len(yhat))
+        yhat_class[yhat >= 0] = 1
+        return yhat, yhat_class

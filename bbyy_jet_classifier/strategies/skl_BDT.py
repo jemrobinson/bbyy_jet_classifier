@@ -4,9 +4,11 @@ import os
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import classification_report
+from sklearn.grid_search import GridSearchCV
 from . import BaseStrategy
 from ..utils import ensure_directory
 
+GRID_SEARCH = False
 
 class sklBDT(BaseStrategy):
     """
@@ -31,11 +33,35 @@ class sklBDT(BaseStrategy):
         """
         # -- Train:
         logging.getLogger("skl_BDT").info("Training...")
-        classifier = GradientBoostingClassifier(n_estimators=300, min_samples_split=2, max_depth=10, verbose=1)
-        classifier.fit(train_data["X"], train_data["y"], sample_weight=train_data["w"])
+
+        if GRID_SEARCH: # -- useful, I wouln't erase it completely
+        # -- however, we should probably pass this as an argument instead of defining this on top of the file
+            param_grid = { # change these parameters if you want to test different options
+               'n_estimators' : [50, 100, 200, 300], 
+               'min_samples_split' : [2, 5],
+               'max_depth': [3, 5, 7, 10]
+            }
+            fit_params = {
+                'sample_weight' : train_data['w']
+            }
+            metaclassifier = GridSearchCV(GradientBoostingClassifier(), param_grid=param_grid, fit_params=fit_params, 
+                #scoring=event_accuracy, TO BE IMPLEMENTED! 
+                cv=2, n_jobs=4, verbose=1)
+            metaclassifier.fit(train_data['X'], train_data['y'])
+            classifier = metaclassifier.best_estimator_
+            print metaclassifier.best_params_
+
+        else:
+            classifier = GradientBoostingClassifier(
+                n_estimators=300, 
+                min_samples_split=0.5 * len(train_data["y"]), 
+                max_depth=15, 
+                verbose=1
+                )
+            classifier.fit(train_data["X"], train_data["y"], sample_weight=train_data["w"])
 
         # -- Dump output to pickle
-        ensure_directory(os.path.join(self.output_directory, sample_name, self.name, "classifier", ))
+        ensure_directory(os.path.join(self.output_directory, sample_name, self.name, "classifier"))
         joblib.dump(classifier, os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_clf.pkl"), protocol=cPickle.HIGHEST_PROTOCOL)
 
         # Save BDT to TMVA xml file
@@ -44,7 +70,11 @@ class sklBDT(BaseStrategy):
             from skTMVA import convert_bdt_sklearn_tmva
             logging.getLogger("skl_BDT").info("Exporting output to TMVA XML file")
             variables = [ (v,variable_dict[v]) for v in classification_variables ]
-            convert_bdt_sklearn_tmva(classifier, variables, os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_TMVA.weights.xml"))
+            convert_bdt_sklearn_tmva(
+                classifier,
+                variables,
+                os.path.join(self.output_directory, sample_name, self.name, "classifier", "skl_BDT_TMVA.weights.xml")
+                )
         except ImportError:
             logging.getLogger("skl_BDT").info("Could not import skTMVA. Skipping export to TMVA output.")
 
@@ -74,11 +104,17 @@ class sklBDT(BaseStrategy):
         classifier = joblib.load(os.path.join(self.output_directory, training_sample, self.name, "classifier", "skl_BDT_clf.pkl"))
 
         # -- Get classifier predictions
-        yhat = classifier.predict_proba(test_data["X"])[:, 1]
+        yhat = classifier.predict_proba(test_data["X"])[:, 1] # extracting column 1, i.e. P(signal)
+        yhat_class = classifier.predict(test_data["X"])
 
         # -- Log classification scores
         logging.getLogger("skl_BDT").info("accuracy = {:.2f}%".format(100 * classifier.score(test_data["X"], test_data["y"], sample_weight=test_data["w"])))
-        for output_line in classification_report(test_data["y"], classifier.predict(test_data["X"]), target_names=["correct", "incorrect"], sample_weight=test_data["w"]).splitlines():
+        for output_line in classification_report(
+                test_data["y"], 
+                yhat_class, 
+                target_names=["correct", "incorrect"], 
+                sample_weight=test_data["w"]
+                ).splitlines():
             logging.getLogger("skl_BDT").info(output_line)
 
-        return yhat
+        return yhat, yhat_class

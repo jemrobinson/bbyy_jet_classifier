@@ -8,7 +8,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"int32": "I", "float64": "D", "float32": "F"}
 
-def load(input_filename, excluded_variables, training_fraction, max_events):
+def load(input_filename, treename, excluded_variables, training_fraction, max_events):
     """
     Definition:
     -----------
@@ -45,7 +45,7 @@ def load(input_filename, excluded_variables, training_fraction, max_events):
     for v_name in excluded_variables:
         logging.getLogger("process_data").info("... excluding variable {}".format(v_name))
     # -- import all root files into data_rec
-    data_rec = root2array(input_filename, "events_1tag")
+    data_rec = root2array(input_filename, treename)
     # -- ordered dictionary of branches and their type
     variable2type = OrderedDict(((v_name, TYPE_2_CHAR[data_rec[v_name][0].dtype.name]) for v_name in data_rec.dtype.names
                                  if v_name not in excluded_variables))

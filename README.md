@@ -8,9 +8,13 @@ This code uses the ```skTMVA``` class from ```https://github.com/yuraic/koza4ok`
 
 # Example: testing previously trained classifier on BSM inputs -- NB. be careful about double counting here
 ./run_classifier.py --input inputs/X275_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
+
 ./run_classifier.py --input inputs/X300_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
+
 ./run_classifier.py --input inputs/X325_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
+
 ./run_classifier.py --input inputs/X350_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
+
 ./run_classifier.py --input inputs/X400_hh.root --exclude Delta_phi_jb --strategy sklBDT --ftrain 0 --training_sample SM_merged
 
 # Example: training and testing on all inputs

@@ -12,6 +12,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run ML algorithms over ROOT TTree input")
 
     parser.add_argument("--input", required=True, type=str, nargs="+", help="input file names")
+    parser.add_argument("--tree", type=str, help="name of the tree in the ntuples", default="events_1tag")
     parser.add_argument("--output", type=str, help="output directory", default="output")
     parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", help="list of variables to exclude")
     parser.add_argument("--ftrain", type=float, default=0.6, help="fraction of events to use for training")
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         classification_variables, variable2type,\
             training_data[input_samples[-1]], testing_data[input_samples[-1]],\
             yhat_old_test_data[input_samples[-1]], test_events_data[input_samples[-1]]\
-            = process_data.load(input_filename, args.exclude, args.ftrain, args.max_events)
+            = process_data.load(input_filename, args.tree, args.exclude, args.ftrain, args.max_events)
 
         #-- Plot input distributions
         plot_inputs.input_distributions(classification_variables, training_data[input_samples[-1]], testing_data[input_samples[-1]],
@@ -100,7 +101,7 @@ if __name__ == "__main__":
             # -- (only useful if you care to check the performance on the training set)
             for (sample_name, train_data) in training_data.items():
                 logger.info("Sanity check: testing global classifier output on training set {}".format(sample_name))
-                yhat_train = ML_strategy.test(train_data, classification_variables, training_sample=combined_input_sample)
+                yhat_train, yhat_class_train = ML_strategy.test(train_data, classification_variables, training_sample=combined_input_sample)
                 plot_outputs.classifier_output(ML_strategy, yhat_train, train_data, process="training", sample_name=sample_name)
 
         else:
@@ -115,11 +116,11 @@ if __name__ == "__main__":
                 logger.info("Running classifier from {} on testing set for {}".format(training_sample, sample_name))
 
                 # -- Test classifier
-                yhat_test = ML_strategy.test(test_data, classification_variables, training_sample=training_sample)
+                yhat_test, yhat_class_test = ML_strategy.test(test_data, classification_variables, training_sample=training_sample)
 
                 # -- Plot output testing distributions from classifier
                 plot_outputs.classifier_output(ML_strategy, yhat_test, test_data, process="testing", sample_name=sample_name)
-                plot_outputs.confusion(ML_strategy, yhat_test, test_data, ML_strategy.name, sample_name=sample_name)
+                plot_outputs.confusion(ML_strategy, yhat_class_test, test_data, ML_strategy.name, sample_name=sample_name)
 
                 # -- Plot yhat output for the old strategies
                 for old_strategy_name in old_strategy_names:
