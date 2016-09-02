@@ -66,24 +66,27 @@ def load(input_filename, treename, excluded_variables, training_fraction, max_ev
     y = data_rec["isCorrect"]
     # -- NB. weights can be positive or negative at NLO
     #    convert one weight per event to one weight per jet
-    w = [[data_rec["event_weight"][ev]] * len(data_rec["isCorrect"][ev]) for ev in xrange(data_rec.shape[0])]
+    w = np.array([[data_rec["event_weight"][ev]] * len(data_rec["isCorrect"][ev]) for ev in xrange(data_rec.shape[0])])
     yhat_mHmatch = data_rec["idx_by_mH"]
     yhat_pThigh = data_rec["idx_by_pT"]
+    yhat_pTjb = data_rec["idx_by_pT_jb"]
     ix = np.array(range(data_rec.shape[0]))
 
-    # -- Construct training and test datasets, automatically permuted
+    # -- Can't pass `train_size=1`, but can use `test_size=0`
     if training_fraction == 1:
-        # -- Can't pass `train_size=1`, but can use `test_size=0`
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, _, ix_test = \
-            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, test_size=0)
-
+        split_kwargs = {"test_size":0}
     else:
-        X_train, X_test, y_train, y_test, w_train, w_test, _, yhat_mHmatch_test, _, yhat_pThigh_test, _, ix_test = \
-            train_test_split(X, y, w, yhat_mHmatch, yhat_pThigh, ix, train_size=training_fraction)
+        split_kwargs = {"train_size":training_fraction}
+
+    # -- Construct training and test datasets, automatically permuted
+    X_train, X_test, y_train, y_test, w_train, w_test, _, ix_test, \
+        _, yhat_mHmatch_test, _, yhat_pThigh_test, _, yhat_pTjb_test = \
+        train_test_split(X, y, w, ix, yhat_mHmatch, yhat_pThigh, yhat_pTjb, **split_kwargs)
 
     # -- go from event-flat to jet-flat
-    y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test = \
-        [flatten(element) for element in [y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test]]
+    y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test, yhat_pTjb_test = \
+        [flatten(element) for element in [y_train, y_test, w_train, w_test, yhat_mHmatch_test, yhat_pThigh_test, yhat_pTjb_test]]
+
     X_train = np.array([flatten(X_train[var]) for var in classification_variables]).T
     X_test = np.array([flatten(X_test[var]) for var in classification_variables]).T
 
@@ -93,7 +96,7 @@ def load(input_filename, treename, excluded_variables, training_fraction, max_ev
     # -- Put X, y and w into a dictionary to conveniently pass these objects around
     train_data = {"X": X_train, "y": y_train, "w": w_train}
     test_data = {"X": X_test, "y": y_test, "w": w_test}
-    yhat_old_test_data = {"mHmatch": yhat_mHmatch_test, "pThigh": yhat_pThigh_test}
+    yhat_old_test_data = {"mHmatch": yhat_mHmatch_test, "pThigh": yhat_pThigh_test, "pTjb": yhat_pTjb_test}
 
     # -- Do the same for the event-level arrays
     test_events_data = {"y": data_rec["isCorrect"][ix_test],

@@ -141,16 +141,17 @@ if __name__ == "__main__":
                 #       pT_j will be used to try cutting on the jet pTs
 
                 # -- put arrays back into event format by matching shape of y_event
-                yhat_test_ev = process_data.match_shape(yhat_test, test_events_data[sample_name]["y"])
-                yhat_mHmatch_test_ev = process_data.match_shape(yhat_old_test_data_dict["mHmatch"], test_events_data[sample_name]["y"])
-                yhat_pThigh_test_ev = process_data.match_shape(yhat_old_test_data_dict["pThigh"], test_events_data[sample_name]["y"])
+                yhat_test_ev = {"classifier": process_data.match_shape(yhat_test, test_events_data[sample_name]["y"])}
+                for old_strategy_name in old_strategy_names:
+                    yhat_test_ev[old_strategy_name] = process_data.match_shape(yhat_old_test_data_dict[old_strategy_name], test_events_data[sample_name]["y"])
 
                 # -- print performance
                 logger.info("Writing out event-level performance information...")
                 utils.ensure_directory(os.path.join(ML_strategy.output_directory, "pickles", sample_name))
-                cPickle.dump({"yhat_test_ev": yhat_test_ev,
-                              "yhat_mHmatch_test_ev": yhat_mHmatch_test_ev,
-                              "yhat_pThigh_test_ev": yhat_pThigh_test_ev,
+                cPickle.dump({"yhat_test_ev": yhat_test_ev["classifier"],
+                              "yhat_mHmatch_test_ev": yhat_test_ev["mHmatch"],
+                              "yhat_pThigh_test_ev": yhat_test_ev["pThigh"],
+                              "yhat_pTjb_test_ev": yhat_test_ev["pTjb"],
                               "y_event": test_events_data[sample_name]["y"],
                               "mjb_event": test_events_data[sample_name]["m_jb"],
                               "pTj_event": test_events_data[sample_name]["pT_j"],
