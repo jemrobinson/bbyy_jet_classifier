@@ -22,7 +22,7 @@ def bdt_old_ratio(data, strategy, baseline_strategy, lower_bound):
 		else:
 			raise ValueError("There are no data points to plot for class " + ss)
 
-	plt.title('Asimov significance ratio wrt {} strategy'.format(strategy))
+	plt.title('Asimov significance ratio wrt {} strategy'.format(baseline_strategy))
 	plt.xlabel('BDT Threshold Value')
 	plt.ylabel(r'$Z_{\mathrm{Asimov}}^{\mathrm{BDT}} / Z_{\mathrm{Asimov}}^{\mathrm{baseline}}$')
 	plt.xlim(xmin=lower_bound, xmax=0.95)
