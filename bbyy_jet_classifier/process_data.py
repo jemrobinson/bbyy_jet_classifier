@@ -52,13 +52,12 @@ def load(input_filename, treename, excluded_variables, training_fraction, max_ev
     # -- variables used as inputs to the classifier
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
-    # -- only use max_events events
-    if max_events > 0 :
-        data_rec = data_rec[np.random.randint(data_rec.shape[0], size=max_events)]
-
     # -- throw away events with no jet pairs
     n_events_before_rejection = data_rec.size
     data_rec = data_rec[np.array([len(data_rec["isCorrect"][ev]) > 0 for ev in xrange(data_rec.shape[0])])]
+    # -- only use max_events events
+    if max_events > 0 :
+        data_rec = data_rec[np.random.randint(data_rec.shape[0], size=max_events)]
     logging.getLogger("process_data").info("Found {} events of which {} ({}%) remain after rejecting empty events".format(n_events_before_rejection, data_rec.size, (100*data_rec.size)/n_events_before_rejection))
 
     # -- slice rec array to only contain input features

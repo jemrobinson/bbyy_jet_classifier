@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument("--output", type=str, help="output directory", default="output")
     parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", help="list of variables to exclude")
     parser.add_argument("--ftrain", type=float, default=0.6, help="fraction of events to use for training")
+    parser.add_argument("--grid_search", action='store_true', help="run a grid search to determine BDT parameters")
     parser.add_argument("--training_sample", type=str, help="directory with training info")
     parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], help="strategy to use. Options are: RootTMVA, sklBDT.")
     parser.add_argument("--max_events", type=int, default=-1, help="maximum number of events to use (for debugging)")
@@ -95,7 +96,7 @@ if __name__ == "__main__":
             logger.info("Preparing to train with {}% of events and then test with the remainder".format(int(100 * args.ftrain)))
 
             # -- Train classifier
-            ML_strategy.train(train_data_combined, classification_variables, variable2type, sample_name=combined_input_sample)
+            ML_strategy.train(train_data_combined, classification_variables, variable2type, sample_name=combined_input_sample, grid_search=args.grid_search)
 
             # -- Plot the classifier output as tested on each of the training sets
             # -- (only useful if you care to check the performance on the training set)

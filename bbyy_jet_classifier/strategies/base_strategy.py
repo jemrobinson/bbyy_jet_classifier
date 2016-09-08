@@ -9,7 +9,7 @@ class BaseStrategy(object):
         self.output_directory = os.path.join(output_directory)
         utils.ensure_directory(self.output_directory)
 
-    def train(self, train_data, classification_variables, variable_dict, sample_name):
+    def train(self, train_data, classification_variables, variable_dict, sample_name, grid_search):
         raise NotImplementedError("Must be implemented by child class!")
 
     def test(self, test_data, classification_variables, training_sample):

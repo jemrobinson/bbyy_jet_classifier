@@ -75,7 +75,7 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
-        tick_marks = [0, 1] #np.arange(len(np.unique(y_test)))
+        tick_marks = [0, 1]
         plt.xticks(tick_marks, ['Incorrect', 'Correct'])
         plt.yticks(tick_marks, ['Incorrect', 'Correct'], rotation='vertical')
         plt.ylabel('True Label')
@@ -88,9 +88,9 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
     plt.savefig(os.path.join(
-        ML_strategy.output_directory, 
-        "testing", 
-        sample_name, 
+        ML_strategy.output_directory,
+        "testing",
+        sample_name,
         "{}_confusion_{}.pdf".format(model_name, sample_name)
         ))
     plt.close(figure)
@@ -119,19 +119,26 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
     bins = np.linspace(min(yhat), max(yhat), 50)
+    y_values = []
 
     # -- Plot data
     try:
-        plt.hist(yhat[data['y'] == 1], weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])), bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+        _contents, _, _ = plt.hist(yhat[data['y'] == 1], weights=data['w'][data['y'] == 1] / float(sum(data['w'][data['y'] == 1])),
+                                   bins=bins, histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+        y_values.append(_contents)
     except ValueError:  # for Sherpa y+jets
         pass
-    plt.hist(yhat[data['y'] == 0], weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])), bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    _contents, _, _ = plt.hist(yhat[data['y'] == 0], weights=data['w'][data['y'] == 0] / float(sum(data['w'][data['y'] == 0])),
+                              bins=bins, histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    y_values.append(_contents)
 
     # -- Plot legend/axes/etc.
-    plt.legend(loc="upper right")
+    plt.legend(loc=(0.02,0.9-0.05*len(y_values)), fontsize=15)
     plt.xlabel("Classifier output")
     plt.ylabel("Fraction of events")
     plot_atlas.use_atlas_labels(axes)
+    y_values = np.array(y_values).flatten()
+    axes.set_ylim(min(y_values), 1.3*max(y_values))
 
     # -- Write figure and close plot to save memory
     ensure_directory(os.path.join(ML_strategy.output_directory, process, sample_name))

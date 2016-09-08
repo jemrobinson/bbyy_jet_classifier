@@ -14,7 +14,7 @@ class RootTMVA(BaseStrategy):
     Strategy using a BDT from ROOT TMVA
     """
 
-    def train(self, train_data, classification_variables, variable_dict, sample_name):
+    def train(self, train_data, classification_variables, variable_dict, sample_name, grid_search):
         """
         Definition:
         -----------
@@ -45,9 +45,15 @@ class RootTMVA(BaseStrategy):
         factory.PrepareTrainingAndTestTree(TCut("1"), "NormMode=EqualNumEvents")
 
         #-- Define methods:
+        # ["NTrees=200", "MinNodeSize=0.1", "MaxDepth=6", "BoostType=Grad", "SeparationType=GiniIndex",  "NegWeightTreatment=IgnoreNegWeightsInTraining"]
         factory.BookMethod(TMVA.Types.kBDT, "BDT", ":".join(
-            ["NTrees=800", "MinNodeSize=5", "MaxDepth=15", "BoostType=Grad", "SeparationType=GiniIndex"]
+            ["NTrees=300", "MinNodeSize=0.01", "MaxDepth=8", "BoostType=Grad", "SeparationType=GiniIndex",  "NegWeightTreatment=Pray"]
         ))
+
+        # -- Have we considered using a Fisher classifier?
+        # factory.BookMethod(TMVA.Types.kFisher, "Fisher", ":".join(
+        #     ["VerbosityLevel=Info",  "IgnoreNegWeightsInTraining=False"]
+        # ))
 
         # -- Where stuff actually happens:
         logging.getLogger("root_tmva").info("Train all methods")
@@ -87,6 +93,7 @@ class RootTMVA(BaseStrategy):
 
         # -- Load TMVA results
         reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, self.name, "weights", "TMVAClassification_BDT.weights.xml"))
+        # reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, self.name, "weights", "TMVAClassification_Fisher.weights.xml"))
         # -- Load skl_BDT results (used for testing only)
         # reader.BookMVA("BDT", os.path.join(self.output_directory, training_sample, "skl_BDT", "classifier", "skl_BDT_TMVA.weights.xml"))
 
