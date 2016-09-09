@@ -25,10 +25,13 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old, sample
             pThigh_test  = array of dim (# testing examples), containing the binary decision based the "highest pT" strategy
     """
     # -- Calculate efficiencies from the older strategies
+    # -- TO BE IMPROVED
     eff_mH_signal = float(sum((yhat_old["mHmatch"] * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
     eff_mH_bkg = float(sum((yhat_old["mHmatch"] * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
     eff_pT_signal = float(sum((yhat_old["pThigh"] * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
     eff_pT_bkg = float(sum((yhat_old["pThigh"] * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
+    eff_pTjb_signal = float(sum((yhat_old["pTjb"] * test_data["w"])[test_data["y"] == 1])) / float(sum(test_data["w"][test_data["y"] == 1])) if (sum(test_data["y"] == 1) > 0) else 0
+    eff_pTjb_bkg = float(sum((yhat_old["pTjb"] * test_data["w"])[test_data["y"] == 0])) / float(sum(test_data["w"][test_data["y"] == 0]))
 
     # -- Write old strategies pickle to output directory
     ensure_directory(os.path.join(ML_strategy.output_directory, "pickles", sample_name))
@@ -36,7 +39,9 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old, sample
         "eff_mH_signal": eff_mH_signal,
         "eff_mH_bkg": eff_mH_bkg,
         "eff_pT_signal": eff_pT_signal,
-        "eff_pT_bkg": eff_pT_bkg
+        "eff_pT_bkg": eff_pT_bkg,
+        "eff_pTjb_signal": eff_pTjb_signal,
+        "eff_pTjb_bkg": eff_pTjb_bkg,
     }, open(os.path.join(ML_strategy.output_directory, "pickles", sample_name, "ROC_old_strategies_dict.pkl"), "wb"))
 
     # -- Initialise figure and axes
@@ -48,6 +53,7 @@ def signal_eff_bkg_rejection(ML_strategy, yhat_test, test_data, yhat_old, sample
     # -- Add ROC curves and efficiency points for old strategies
     plt.plot(eff_mH_signal, 1.0 / eff_mH_bkg, marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(eff_pT_signal, 1.0 / eff_pT_bkg, marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
+    plt.plot(eff_pTjb_signal, 1.0 / eff_pTjb_bkg, marker="o", color="magenta", label=r"Highest p$_{T, jb}$", linewidth=0)  # add point for "pTjb" strategy
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
@@ -73,10 +79,12 @@ def roc_comparison(ML_strategy, sample_name):
 
     # -- Initialise figure and axes
     logging.getLogger("plot_roc").info("Comparing {} strategies for {}".format(len(curves)+len(dots)/2, sample_name))
-    figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0.1, max_eff=1.0, max_rej=10**4, logscale=True)
+    figure = ROC_plotter(curves, title=r"Performance of Second b-Jet Selection Strategies", min_eff=0, max_eff=1.0, max_rej=10**4, logscale=True)
 
     plt.plot(dots["eff_mH_signal"], 1.0 / dots["eff_mH_bkg"], marker="o", color="r", label=r"Closest m$_{H}$", linewidth=0)  # add point for "mHmatch" strategy
     plt.plot(dots["eff_pT_signal"], 1.0 / dots["eff_pT_bkg"], marker="o", color="b", label=r"Highest p$_{T}$", linewidth=0)  # add point for "pThigh" strategy
+    plt.plot(dots["eff_pTjb_signal"], 1.0 / dots["eff_pTjb_bkg"], marker="o", color="magenta", label=r"Highest p$_{T, jb}$", linewidth=0)  # add point for "pTjb" strategy
+
     plt.legend()
     plot_atlas.use_atlas_labels(plt.axes())
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))

@@ -40,6 +40,7 @@ def main(sample_names, strategy, lower_bound, intervals):
             d["yhat_test_ev"],
             d["yhat_mHmatch_test_ev"],
             d["yhat_pThigh_test_ev"],
+            d["yhat_pTjb_test_ev"],
             d["y_event"],
             d["mjb_event"],
             d["w_test"],
@@ -51,7 +52,7 @@ def main(sample_names, strategy, lower_bound, intervals):
         asimov_dict = {
             _sample_name: {
                 strategy: map(np.array, [THRESHOLD, [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
-                for strategy in ["BDT", "mHmatch", "pThigh"]
+                for strategy in ["BDT", "mHmatch", "pThigh", "pTjb"]
             }
             for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
         }
@@ -60,7 +61,7 @@ def main(sample_names, strategy, lower_bound, intervals):
         asimov_dict = {
             _sample_name: {
                 strategy: map(np.array, [[THRESHOLD], [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
-                for strategy in ["BDT", "mHmatch", "pThigh"]
+                for strategy in ["BDT", "mHmatch", "pThigh", "pTjb"]
             }
             for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
         }
@@ -70,8 +71,8 @@ def main(sample_names, strategy, lower_bound, intervals):
     with open(os.path.join("output", "pickles", "multi_proc_{}.pkl".format(strategy)), "wb") as f:
         cPickle.dump(asimov_dict, f)
 
-    # Plot Z_BDT/Z_mHmatch for different threshold values
-    plot_asimov.bdt_mhmatch_ratio(asimov_dict, strategy, lower_bound)
+    # Plot Z_BDT/Z_old for different threshold values
+    plot_asimov.bdt_old_ratio(asimov_dict, strategy, 'mHmatch', lower_bound)
 
 
 def asimov(s, b):
@@ -91,7 +92,7 @@ def asimov(s, b):
     return math.sqrt(2 * ((s + b) * math.log(1 + (s / b)) - s))
 
 
-def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_event, mjb_event, w_test, THRESHOLD):
+def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, yhat_pTjb_test_ev, y_event, mjb_event, w_test, THRESHOLD):
     """
     Definition:
     -----------
@@ -101,6 +102,7 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
         yhat_test_ev: event level numpy array containing the predictions from the BDT for each jet in the event
         yhat_mHmatch_test_ev: event level numpy array containing the predictions from mHmatch for each jet in the event
         yhat_pThigh_test_ev: event level numpy array containing the predictions from pThigh for each jet in the event
+        yhat_pTjb_test_ev: event level numpy array containing the predictions from pTjb for each jet in the event
         y_event: event level numpy array containing the truth labels for each jet in the event
         mjb_event: event level numpy array containing the values of m_jb for each jet in the event
         THRESHOLD: an integer or iterable of integers
@@ -109,6 +111,7 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
     logger.info("BDT:     Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_test_ev, y_event)))
     logger.info("mHmatch: Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_mHmatch_test_ev, y_event)))
     logger.info("pThigh:  Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pThigh_test_ev, y_event)))
+    logger.info("pTjb:  Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pTjb_test_ev, y_event)))
     logger.info("Number of events without any correct pair = {}".format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
 
     # check whether selected pair has m_jb in mass window for truly correct and truly incorrect pairs
@@ -122,7 +125,8 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, y_
     in_BDT = in_mjb_window(mjb_event, y_event, yhat_test_ev, w_test, correct_present_truth, "BDT", THRESHOLD)
     in_mHmatch = in_mjb_window(mjb_event, y_event, yhat_mHmatch_test_ev, w_test, correct_present_truth, "mHmatch", THRESHOLD)
     in_pThigh = in_mjb_window(mjb_event, y_event, yhat_pThigh_test_ev, w_test, correct_present_truth, "pThigh", THRESHOLD)
-    return {"BDT": in_BDT, "mHmatch": in_mHmatch, "pThigh": in_pThigh}
+    in_pTjb = in_mjb_window(mjb_event, y_event, yhat_pTjb_test_ev, w_test, correct_present_truth, "pTjb", THRESHOLD)
+    return {"BDT": in_BDT, "mHmatch": in_mHmatch, "pThigh": in_pThigh, "pTjb" : in_pTjb}
 
 
 def count_correct_total(yhat, y):
