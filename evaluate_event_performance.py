@@ -11,23 +11,26 @@ from bbyy_jet_classifier import utils
 from bbyy_jet_classifier.plotting import plot_asimov
 
 
-def main(sample_names, strategy, lower_bound, intervals):
+def main(strategy, category, lower_bound, intervals):
 
     logger = logging.getLogger("event_performance.main")
     THRESHOLD = np.linspace(lower_bound, 1, intervals)
+
+    base_directory = os.path.join("output", category, "pickles")
+    sample_names = os.listdir(base_directory)
     bkg_sample_name = [ x for x in sample_names if "bkg" in x ][0]
     logger.info("Processing data from {} samples...".format(len(sample_names)))
 
     pickle_paths = sum(
         [glob.glob(
                 os.path.join(
-                    "output", 
-                    "pickles", 
-                    sample_name, 
+                    base_directory,
+                    sample_name,
                     "{}_event_performance_dump.pkl".format(strategy)
-                    )
-                ) 
-        for sample_name in sample_names], [] # why adding an empty list?
+                )
+         ) for sample_name in sample_names], []
+        # Q: why adding an empty list?
+        # A: sum( list_of_lists, [] ) is a quick way to flatten a list of lists without using libraries.
         )
     logger.info("Found {} datasets to load...".format(len(pickle_paths)))
 
@@ -140,15 +143,15 @@ def count_correct_total(yhat, y):
         y:    event level numpy array containing the truth labels for each jet in the event
     Returns:
     --------
-        n_correct_sample_nameifier: int, number of events in which the correct jet pair was assigned the highest classifier score
+        n_correct_classifier: int, number of events in which the correct jet pair was assigned the highest classifier score
         n_correct_truth:      int, total number of events with a "correct" jet pair
     """
     # -- find how many times we find the correct pair in all events that do have a correct pair
-    # correct_sample_nameifier = a truly correct pair existed (sum(y[ev]) == 1) and we got it right (np.argmax(yhat[ev]) == np.argmax(y[ev]))
-    n_correct_sample_nameifier = sum([np.argmax(yhat[ev]) == np.argmax(y[ev]) for ev in xrange(len(y)) if sum(y[ev]) == 1])
+    # correct_classifier = a truly correct pair existed (sum(y[ev]) == 1) and we got it right (np.argmax(yhat[ev]) == np.argmax(y[ev]))
+    n_correct_classifier = sum([np.argmax(yhat[ev]) == np.argmax(y[ev]) for ev in xrange(len(y)) if sum(y[ev]) == 1])
     # correct_truth = a truly correct pair exists
     n_correct_truth = sum([sum(y[ev]) == 1 for ev in xrange(len(y))])
-    return n_correct_sample_nameifier, n_correct_truth
+    return n_correct_classifier, n_correct_truth
 
 
 def _weightedsum_eventsinmjb(weights_in_mjb, yhat, slicer, thresh):
@@ -210,7 +213,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Check event level performance")
     parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="skl_BDT")
-    parser.add_argument("sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
+    parser.add_argument("--category", type=str, help="which trained classifier to use. Examples are: low_mass, high_mass.", default="skl_BDT")
     parser.add_argument("--intervals", type=int, help="number of threshold values to test", default=21)
     args = parser.parse_args()
     if args.strategy == 'skl_BDT':
@@ -219,4 +222,4 @@ if __name__ == "__main__":
         lower_bound = -1
     else:
         raise ValueError("Unknown strategy. The only options are root_tmva and skl_BDT.")
-    sys.exit(main(args.sample_names, args.strategy, lower_bound, args.intervals))
+    sys.exit(main(args.strategy, args.category, lower_bound, args.intervals))

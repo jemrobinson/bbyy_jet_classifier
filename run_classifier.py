@@ -37,6 +37,11 @@ def check_args(parsed_args):
     if (parsed_args.ftrain > 0) and (parsed_args.training_sample is not None):
         raise ValueError("Training location is only a valid argument when ftrain == 0, because if you are using {}% of your input data for training, you should not be testing on a separate pre-trained classifier.".format(100 * parsed_args.ftrain))
 
+    if not "output" in parsed_args.output :
+        parsed_args.output = os.path.join("output", parsed_args.output)
+
+    return parsed_args
+
 # --------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -47,7 +52,7 @@ if __name__ == "__main__":
 
     # -- Parse arguments
     args = parse_args()
-    check_args(args)
+    args = check_args(args)
 
     # -- Construct list of input samples and dictionaries of sample -> data
     input_samples, training_data, testing_data, yhat_old_test_data, test_events_data = [], {}, {}, {}, {}
