@@ -55,7 +55,7 @@ class sklBDT(BaseStrategy):
 
         else:
             classifier = GradientBoostingClassifier(
-                n_estimators=200, # was n_estimators=300
+                n_estimators=5, # was n_estimators=300
                 max_depth=6, # was max_depth=15
                 min_samples_leaf=40, # was min_samples_split=0.5 * len(train_data["y"])
                 verbose=1
@@ -107,8 +107,8 @@ class sklBDT(BaseStrategy):
         classifier = joblib.load(os.path.join(self.output_directory, training_sample, self.name, "classifier", "skl_BDT_clf.pkl"))
 
         # -- Get classifier predictions
-        # yhat = classifier.predict_proba(test_data["X"])[:, 1] # extracting column 1, i.e. P(signal)
-        yhat = classifier.decision_function(test_data["X"]) # get the actual decision function
+        yhat = classifier.predict_proba(test_data["X"])[:, 1] # extracting column 1, i.e. P(signal)
+        # yhat = classifier.decision_function(test_data["X"]) # get the actual decision function
         yhat_class = classifier.predict(test_data["X"])
 
         # -- Log classification scores
