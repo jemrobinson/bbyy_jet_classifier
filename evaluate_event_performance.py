@@ -1,4 +1,16 @@
 #! /usr/bin/env python
+'''
+Event level performance evaluation quantified in terms of Asimov significance.
+It compares the performance of three old strategies (mHmatch, pThigh, pTjb)
+with that of the BDT. The BDT performance is evaluated after excluding events
+in which the highest BDT score is < threshold. For many threshold values, the
+performance can be computed in paralled. 
+Output: 
+    plot + pickled dictionary
+Run:
+    python evaluate_event_performance.py --strategy root_tmva \
+    --sample_names SM_bkg_photon_jet SM_hh X275 X300 (...) --intervals 21
+'''
 import cPickle
 import glob
 import logging
@@ -9,7 +21,6 @@ import numpy as np
 import time
 from bbyy_jet_classifier import utils
 from bbyy_jet_classifier.plotting import plot_asimov
-
 
 def main(sample_names, strategy, lower_bound, intervals):
 
@@ -209,8 +220,8 @@ if __name__ == "__main__":
     utils.configure_logging()
 
     parser = argparse.ArgumentParser(description="Check event level performance")
-    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="skl_BDT")
-    parser.add_argument("sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
+    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="root_tmva")
+    parser.add_argument("--sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
     parser.add_argument("--intervals", type=int, help="number of threshold values to test", default=21)
     args = parser.parse_args()
     if args.strategy == 'skl_BDT':
