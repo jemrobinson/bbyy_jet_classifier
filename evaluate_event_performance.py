@@ -225,9 +225,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Check event level performance")
     #parser.add_argument("--sample_names", help="list of names of samples to evaluate", type=str, nargs="+", default=[])
-    parser.add_argument("--strategy", type=str, help="strategy to evaluate. Options are: root_tmva, skl_BDT.", default="skl_BDT")
-    parser.add_argument("--category", type=str, help="which trained classifier to use. Examples are: low_mass, high_mass.", default="low_mass")
-    parser.add_argument("--intervals", type=int, help="number of threshold values to test", default=21)
+    parser.add_argument("--strategy", type=str, default="skl_BDT",
+        help="Strategy to evaluate. Options are: root_tmva, skl_BDT. Default: skl_BDT")
+    parser.add_argument("--category", type=str, default="low_mass",
+        help="Trained classifier to use for event-level evaluation. Examples are: low_mass, high_mass. Default: low_mass")
+    parser.add_argument("--intervals", type=int, default=21,
+        help="Number of threshold values to test. Default: 21")
     args = parser.parse_args()
     if args.strategy == 'skl_BDT':
         lower_bound = 0

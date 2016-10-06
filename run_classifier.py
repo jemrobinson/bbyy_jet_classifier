@@ -11,15 +11,24 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(description="Run ML algorithms over ROOT TTree input")
 
-    parser.add_argument("--input", required=True, type=str, nargs="+", help="input file names")
-    parser.add_argument("--tree", type=str, help="name of the tree in the ntuples", default="events_1tag")
-    parser.add_argument("--output", type=str, help="output directory", default="output")
-    parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", help="list of variables to exclude")
-    parser.add_argument("--ftrain", type=float, default=0.6, help="fraction of events to use for training")
-    parser.add_argument("--grid_search", action='store_true', help="run a grid search to determine BDT parameters")
-    parser.add_argument("--training_sample", type=str, help="directory with training info")
-    parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], help="strategy to use. Options are: RootTMVA, sklBDT.")
-    parser.add_argument("--max_events", type=int, default=-1, help="maximum number of events to use (for debugging)")
+    parser.add_argument("--input", required=True, type=str, nargs="+", 
+        help="List of input file names")
+    parser.add_argument("--tree", type=str, default="events_1tag",
+        help="Name of the tree in the ntuples. Default: events_1tag")
+    parser.add_argument("--output", type=str, default="output",
+        help="Output directory. Default: output")
+    parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", 
+        help="List of variables that are present in the tree but should not be used by the classifier")
+    parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], 
+        help="Type of BDT to use. Options are: RootTMVA, sklBDT. Default: both")
+    parser.add_argument("--grid_search", action='store_true', 
+        help="Pass this flag to run a grid search to determine BDT parameters")
+    parser.add_argument("--ftrain", type=float, default=0.6, 
+        help="Fraction of events to use for training. Default: 0.6. Set to 0 for testing only.")
+    parser.add_argument("--training_sample", type=str, 
+        help="Directory with pre-trained BDT to be used for testing")
+    parser.add_argument("--max_events", type=int, default=-1, 
+        help="Maximum number of events to use (for debugging). Default: all")
 
     return parser.parse_args()
 
@@ -32,10 +41,13 @@ def check_args(parsed_args):
         raise ValueError("ftrain can only be a float between 0.0 and 1.0")
 
     if (parsed_args.ftrain == 0) and (parsed_args.training_sample is None):
-        raise ValueError("When testing on 100% of the input file you need to specify which classifier to load. Pass the folder containing the classifier to --training_sample.")
+        raise ValueError("When testing on 100% of the input file you need to specify which classifier to load. \
+            Pass the folder containing the classifier to --training_sample.")
 
     if (parsed_args.ftrain > 0) and (parsed_args.training_sample is not None):
-        raise ValueError("Training location is only a valid argument when ftrain == 0, because if you are using {}% of your input data for training, you should not be testing on a separate pre-trained classifier.".format(100 * parsed_args.ftrain))
+        raise ValueError("Training location is only a valid argument when ftrain == 0, because if you are using \
+            {}% of your input data for training, you should not be testing on a separate pre-trained \
+            classifier.".format(100 * parsed_args.ftrain))
 
     if not "output" in parsed_args.output :
         parsed_args.output = os.path.join("output", parsed_args.output)
