@@ -14,6 +14,8 @@ ROOT_2_LATEX = {
     "idx_by_pT_jb": r"Highest dijet $p_{T}$ order",
     "idx_by_pT": r"$p_{T}$ order",
     "m_jb": r"$m_{jb}$",
+    "passes_WP77": r"Passes 77% WP",
+    "passes_WP85": r"Passes 85% WP",
     "pT_j": r"$p_{T}^{j}$",
     "pT_jb": r"$p_{T}^{jb}$",
 }
@@ -90,7 +92,7 @@ def input_distributions(classification_variables, training_data, test_data, outp
             axes.set_yscale("log", nonposy='clip')
             axes.set_ylim(min(y_values[np.nonzero(y_values)]), 100*max(y_values))
         else:
-            axes.set_ylim(min(y_values), 1.2*max(y_values))
+            axes.set_ylim(min(y_values), 1.5*max(y_values))
 
         # -- Write figure and close plot to save memory
         utils.ensure_directory(output_directory)

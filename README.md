@@ -20,6 +20,12 @@ This code uses the ```skTMVA``` class from ```https://github.com/yuraic/koza4ok`
 # Example: training and testing on all inputs
 ./run_classifier.py --input inputs/*root --exclude Delta_phi_jb
 
+# Example: training and testing on low-mass inputs
+./run_classifier.py --input inputs/SM_bkg_photon_jet.root inputs/X275_hh.root inputs/X300_hh.root inputs/X325_hh.root inputs/X350_hh.root --exclude Delta_phi_jb --output low_mass
+
+# Example: training and testing on high-mass inputs
+./run_classifier.py --input inputs/SM_bkg_photon_jet.root inputs/X400_hh.root inputs/SM_hh.root --exclude Delta_phi_jb --output high_mass
+
 # Example: evaluate event-level performance
 ./evaluate_event_performance.py X275_hh X300_hh X325_hh X400_hh SM_bkg_photon_jet SM_hh
 

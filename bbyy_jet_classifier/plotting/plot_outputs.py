@@ -7,6 +7,11 @@ import plot_atlas
 from sklearn.metrics import confusion_matrix
 from ..utils import ensure_directory
 
+ROOT_2_LATEX = {
+    "mHmatch": r"Best $m_{H}$ match",
+    "pThigh": r"Highest $p_{T}$",
+    "pTjb": r"Highest $p_{T}^{jb}$"
+}
 
 def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_name):
     """
@@ -28,20 +33,23 @@ def old_strategy(ML_strategy, yhat_test, test_data, old_strategy_name, sample_na
     plot_atlas.set_style()
     figure = plt.figure(figsize=(6, 6), dpi=100)
     axes = plt.axes()
+    y_values = []
 
     # -- Plot data
     try:
-        plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])),
-                 bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+        _contents, _, _ = plt.hist(yhat_test[test_data['y'] == 1], weights=test_data['w'][test_data['y'] == 1] / float(sum(test_data['w'][test_data['y'] == 1])), bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Correct", color="blue", alpha=0.5)
+        y_values.append(_contents)
     except ValueError:  # for Sherpa y+jets
         pass
-    plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])),
-             bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    _contents, _, _ = plt.hist(yhat_test[test_data['y'] == 0], weights=test_data['w'][test_data['y'] == 0] / float(sum(test_data['w'][test_data['y'] == 0])), bins=np.linspace(0, 1, 10), histtype="stepfilled", label="Incorrect", color="red", alpha=0.5)
+    y_values.append(_contents)
 
     # -- Plot legend/axes/etc.
-    plt.legend()
-    plt.xlabel("{} output".format(old_strategy_name))
+    plt.legend(loc=(0.67,0.85), fontsize=15)
+    plt.xlabel("{} output".format(ROOT_2_LATEX[old_strategy_name]))
     plt.ylabel("Fraction of events")
+    y_values = np.array(y_values).flatten()
+    axes.set_ylim(min(y_values), 1.3*max(y_values))
 
     # -- Write figure and close plot to save memory
     plot_atlas.use_atlas_labels(axes)
@@ -87,12 +95,7 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     _plot_confusion_matrix(cm_normalized, title='Normalized Confusion Matrix')
     ensure_directory(os.path.join(ML_strategy.output_directory, "testing", sample_name))
-    plt.savefig(os.path.join(
-        ML_strategy.output_directory,
-        "testing",
-        sample_name,
-        "{}_confusion_{}.pdf".format(model_name, sample_name)
-        ))
+    plt.savefig(os.path.join(ML_strategy.output_directory, "testing", sample_name, "{}_confusion_{}.pdf".format(model_name, sample_name)))
     plt.close(figure)
 
 
@@ -133,7 +136,7 @@ def classifier_output(ML_strategy, yhat, data, process, sample_name):
     y_values.append(_contents)
 
     # -- Plot legend/axes/etc.
-    plt.legend(loc=(0.02,0.9-0.05*len(y_values)), fontsize=15)
+    plt.legend(loc=(0.67,0.85), fontsize=15)
     plt.xlabel("Classifier output")
     plt.ylabel("Fraction of events")
     plot_atlas.use_atlas_labels(axes)
