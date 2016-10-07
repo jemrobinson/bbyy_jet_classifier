@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import cPickle
 import numpy as np
+import plot_atlas
 
 def bdt_old_ratio(data, strategy, baseline_strategy, lower_bound):
 
