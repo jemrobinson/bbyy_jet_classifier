@@ -122,5 +122,5 @@ python run_classifier.py --input inputs/SM_bkg_photon_jet.root inputs/X400_hh.ro
 ### Evaluate event-level performance
 `run_classifier.py` only handles the pipeline to the individual jet pair classification stage. A final step is to evaluate the event-level performance of the tagger, by selecting in each event the jet pair that has the highest BDT score and checking how often that corresponds to the correct pair. The event-level performance is then compared with that of other methods that were previosuly tested in the analysis.
 ```
-python evaluate_event_performance.py X275_hh X300_hh X325_hh X400_hh SM_bkg_photon_jet SM_hh
+python evaluate_event_performance.py --category low_mass --strategy root_tmva --intervals 21
 ```
