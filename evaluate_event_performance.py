@@ -19,20 +19,27 @@ from itertools import izip
 from joblib import Parallel, delayed
 import numpy as np
 import time
+from tabulate import tabulate
 from bbyy_jet_classifier import utils
 from bbyy_jet_classifier.plotting import plot_asimov
 
-#def main(sample_names, strategy, lower_bound, intervals):
 def main(strategy, category, lower_bound, intervals):
 
     logger = logging.getLogger("event_performance.main")
+    # -- test N(=intervals) various threshold values in the range [lower_bound, 1]
+    #    where lower_bound = 0 for sklearn, = -1 for tmva
     THRESHOLD = np.linspace(lower_bound, 1, intervals)
 
+    # -- print some info to the user to confirm the settings
+    logger.info("Strategy: {}".format(strategy))
+    logger.info("Category: {}".format(category))
+    logger.info("Threshold values: {}".format(THRESHOLD))
+
+    # -- find samples by looking at those contained in ./output/<category>/pickles/
     base_directory = os.path.join("output", category, "pickles")
     sample_names = os.listdir(base_directory)
     bkg_sample_name = [ x for x in sample_names if "bkg" in x ][0]
     logger.info("Processing data from {} samples...".format(len(sample_names)))
-
     pickle_paths = sum(
         [glob.glob(
                 os.path.join(
@@ -46,12 +53,13 @@ def main(strategy, category, lower_bound, intervals):
         )
     logger.info("Found {} datasets to load...".format(len(pickle_paths)))
 
+    # -- read in data from each pickle file & evaluate event-level performance
     perf_dict = {}
     for sample_name, path in zip(sample_names,pickle_paths):
         start_time = time.time()
         logger.info("Reading: {}...".format(path))
         d = cPickle.load(open(path, "rb"))
-        perf_dict[sample_name] = eval_performance(
+        perf_dict[sample_name] = eval_performance( # performance evaluation
             d["yhat_test_ev"],
             d["yhat_mHmatch_test_ev"],
             d["yhat_pThigh_test_ev"],
@@ -63,13 +71,15 @@ def main(strategy, category, lower_bound, intervals):
         )
         logger.info("Done in {:.2f} seconds".format(time.time()-start_time))
 
+    # TO-DO: it would be nicer if the dictionary was indexed by threshold, instead of containing a 2d list of thresholds and asimovs
+    headers = sorted([s for s in sample_names if s != bkg_sample_name])
     if hasattr(THRESHOLD, "__iter__"):
         asimov_dict = {
             _sample_name: {
                 strategy: map(np.array, [THRESHOLD, [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
                 for strategy in ["BDT", "mHmatch", "pThigh", "pTjb"]
             }
-            for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
+            for _sample_name in headers#[ x for x in sample_names if x != bkg_sample_name ]
         }
 
     else:
@@ -78,17 +88,33 @@ def main(strategy, category, lower_bound, intervals):
                 strategy: map(np.array, [[THRESHOLD], [asimov(s, b) for s, b in zip(perf_dict[_sample_name][strategy], perf_dict[bkg_sample_name][strategy])]])
                 for strategy in ["BDT", "mHmatch", "pThigh", "pTjb"]
             }
-            for _sample_name in [ x for x in sample_names if x != bkg_sample_name ]
+            for _sample_name in headers#[ x for x in sample_names if x != bkg_sample_name ]
         }
 
-    # Write output to disk
+    # -- Write dictionary of Asimov significances to disk
     utils.ensure_directory(os.path.join("output", "pickles"))
     with open(os.path.join("output", "pickles", "multi_proc_{}.pkl".format(strategy)), "wb") as f:
         cPickle.dump(asimov_dict, f)
 
-    # Plot Z_BDT/Z_old for different threshold values
+    # -- Plot Z_BDT/Z_old for different threshold values
     plot_asimov.bdt_old_ratio(asimov_dict, strategy, 'mHmatch', lower_bound)
-
+    
+    # -- Print Asimov significance for different strategies and different samples in tabular form
+    #    Each table corresponds to a different threshold value
+    for threshold in THRESHOLD:
+        #print '\nAsimov significance for threshold = {}:\n{}'.format(threshold, tabulate(
+        logger.info('\nAsimov significance for threshold = {}:\n{}'.format(threshold, tabulate(
+            [
+                [strategy] + [
+                    asimov_dict[_class][strategy][1][np.isclose(asimov_dict[_class][strategy][0], threshold)] 
+                    for _class in headers
+                ] 
+                for strategy in ['BDT', 'mHmatch', 'pTjb', 'pThigh']
+            ],
+            headers=[''] + headers,
+            floatfmt=".5f"
+        ))
+        )
 
 def asimov(s, b):
     """
@@ -126,7 +152,7 @@ def eval_performance(yhat_test_ev, yhat_mHmatch_test_ev, yhat_pThigh_test_ev, yh
     logger.info("BDT:     Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_test_ev, y_event)))
     logger.info("mHmatch: Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_mHmatch_test_ev, y_event)))
     logger.info("pThigh:  Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pThigh_test_ev, y_event)))
-    logger.info("pTjb:  Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pTjb_test_ev, y_event)))
+    logger.info("pTjb:    Number of correctly classified events = {:5} out of {} events having a correct pair".format(*count_correct_total(yhat_pTjb_test_ev, y_event)))
     logger.info("Number of events without any correct pair = {}".format(sum([sum(y_event[ev]) == 0 for ev in xrange(len(y_event))])))
 
     # check whether selected pair has m_jb in mass window for truly correct and truly incorrect pairs
