@@ -80,6 +80,7 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
     matplotlib.rcParams.update({'font.size': 10})
 
     def _plot_confusion_matrix(cm, title='Confusion Matrix', cmap=plt.cm.RdPu):
+        figure = plt.figure(figsize=(6, 6), dpi=100)
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
@@ -88,7 +89,7 @@ def confusion(ML_strategy, yhat, data, model_name, sample_name):
         plt.yticks(tick_marks, ['Incorrect', 'Correct'], rotation='vertical')
         plt.ylabel('True Label')
         plt.xlabel('Predicted Label')
-        plt.tight_layout()
+        fig.set_tight_layout(True)
 
     cm = confusion_matrix(y_test, yhat)
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
