@@ -8,7 +8,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 
 TYPE_2_CHAR = {"int32": "I", "float64": "D", "float32": "F"}
 
-def load(input_filename, treename, excluded_variables, training_fraction, max_events):
+def load(input_filename, treename, excluded_variables, training_fraction, max_events, n_signal_samples):
     """
     Definition:
     -----------
@@ -44,11 +44,16 @@ def load(input_filename, treename, excluded_variables, training_fraction, max_ev
     logging.getLogger("process_data").info("Loading input from ROOT file: {}".format(input_filename))
     for v_name in excluded_variables:
         logging.getLogger("process_data").info("... excluding variable {}".format(v_name))
+    # -- when using multiple signal samples at once, we need to scale weights of
+    #    the signal samples by 1/n_signal_samples otherwise we'll overtrain
+    weight_scale_factor = 1.
+    if "bkg" not in input_filename :
+        logging.getLogger("process_data").info("{} appears to be a signal sample so the event weights will be \033[1;31mscaled down\033[1;0m by a factor of {}".format(input_filename, n_signal_samples))
+        weight_scale_factor = 1./float(n_signal_samples)
     # -- import all root files into data_rec
     data_rec = root2array(input_filename, treename)
     # -- ordered dictionary of branches and their type
-    variable2type = OrderedDict(((v_name, TYPE_2_CHAR[data_rec[v_name][0].dtype.name]) for v_name in data_rec.dtype.names
-                                 if v_name not in excluded_variables))
+    variable2type = OrderedDict(((v_name, TYPE_2_CHAR[data_rec[v_name][0].dtype.name]) for v_name in data_rec.dtype.names if v_name not in excluded_variables))
     # -- variables used as inputs to the classifier
     classification_variables = [name for name in variable2type.keys() if name not in ["event_weight", "isCorrect"]]
 
@@ -65,7 +70,7 @@ def load(input_filename, treename, excluded_variables, training_fraction, max_ev
     y = data_rec["isCorrect"]
     # -- NB. weights can be positive or negative at NLO
     #    convert one weight per event to one weight per jet
-    w = np.array([[data_rec["event_weight"][ev]] * len(data_rec["isCorrect"][ev]) for ev in xrange(data_rec.shape[0])])
+    w = np.array([[data_rec["event_weight"][ev] * weight_scale_factor] * len(data_rec["isCorrect"][ev])for ev in xrange(data_rec.shape[0])])
     yhat_mHmatch = data_rec["idx_by_mH"]
     yhat_pThigh = data_rec["idx_by_pT"]
     yhat_pTjb = data_rec["idx_by_pT_jb"]

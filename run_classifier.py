@@ -11,24 +11,15 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(description="Run ML algorithms over ROOT TTree input")
 
-    parser.add_argument("--input", required=True, type=str, nargs="+", 
-        help="List of input file names")
-    parser.add_argument("--tree", type=str, default="events_1tag",
-        help="Name of the tree in the ntuples. Default: events_1tag")
-    parser.add_argument("--output", type=str, default="output",
-        help="Output directory. Default: output")
-    parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", 
-        help="List of variables that are present in the tree but should not be used by the classifier")
-    parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], 
-        help="Type of BDT to use. Options are: RootTMVA, sklBDT. Default: both")
-    parser.add_argument("--grid_search", action='store_true', 
-        help="Pass this flag to run a grid search to determine BDT parameters")
-    parser.add_argument("--ftrain", type=float, default=0.6, 
-        help="Fraction of events to use for training. Default: 0.6. Set to 0 for testing only.")
-    parser.add_argument("--training_sample", type=str, 
-        help="Directory with pre-trained BDT to be used for testing")
-    parser.add_argument("--max_events", type=int, default=-1, 
-        help="Maximum number of events to use (for debugging). Default: all")
+    parser.add_argument("--input", required=True, type=str, nargs="+", help="List of input file names")
+    parser.add_argument("--tree", type=str, default="events_1tag", help="Name of the tree in the ntuples. Default: events_1tag")
+    parser.add_argument("--output", type=str, default="output", help="Output directory. Default: output")
+    parser.add_argument("--exclude", type=str, nargs="+", default=[], metavar="VARIABLE_NAME", help="List of variables that are present in the tree but should not be used by the classifier")
+    parser.add_argument("--strategy", type=str, nargs="+", default=["RootTMVA", "sklBDT"], help="Type of BDT to use. Options are: RootTMVA, sklBDT. Default: both")
+    parser.add_argument("--grid_search", action='store_true', help="Pass this flag to run a grid search to determine BDT parameters")
+    parser.add_argument("--ftrain", type=float, default=0.6, help="Fraction of events to use for training. Default: 0.6. Set to 0 for testing only.")
+    parser.add_argument("--training_sample", type=str, help="Directory with pre-trained BDT to be used for testing")
+    parser.add_argument("--max_events", type=int, default=-1, help="Maximum number of events to use (for debugging). Default: all")
 
     return parser.parse_args()
 
@@ -75,10 +66,12 @@ if __name__ == "__main__":
 
     # -- Check that input file exists
     logger.info("Preparing to run over {} input samples".format(len(args.input)))
+    n_bkg_samples, n_signal_samples = len([x for x in args.input if "bkg" in x]), len([x for x in args.input if "bkg" not in x])
+    logger.info("... these appear to consist of {} background and {} signal samples".format(n_bkg_samples, n_signal_samples))
     for input_filename in args.input:
         logger.info("Now considering input: {}".format(input_filename))
         if not os.path.isfile(input_filename):
-            raise OSError("{} does not exist!".format(args.input))
+            raise OSError("{} does not exist!".format(input_filename))
 
         # -- Set up folder paths
         input_samples.append(os.path.splitext(os.path.split(input_filename)[-1])[0])
@@ -87,7 +80,7 @@ if __name__ == "__main__":
         classification_variables, variable2type,\
             training_data[input_samples[-1]], testing_data[input_samples[-1]],\
             yhat_old_test_data[input_samples[-1]], test_events_data[input_samples[-1]]\
-            = process_data.load(input_filename, args.tree, args.exclude, args.ftrain, args.max_events)
+            = process_data.load(input_filename, args.tree, args.exclude, args.ftrain, args.max_events, n_signal_samples)
 
         #-- Plot input distributions
         plot_inputs.input_distributions(classification_variables, training_data[input_samples[-1]], testing_data[input_samples[-1]],
